@@ -9,8 +9,6 @@ import ru.iriyc.cstorage.entity.User;
 import ru.iriyc.cstorage.repository.UserRepository;
 
 import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
 
 import static java.lang.String.format;
 
@@ -42,8 +40,7 @@ public final class UserUtil {
         return registeredUser;
     }
 
-    public static AsymmetricUtil.Keys authorityUser(UserRepository repository, String username, String password)
-            throws CryptoException, InvalidKeySpecException {
+    public static AsymmetricUtil.Keys authorityUser(UserRepository repository, String username, String password) {
         final User user = repository.find(username);
         if (user == null)
             throw new IllegalArgumentException(format("Пользователь %s не зарегистрирован", username));
@@ -52,9 +49,25 @@ public final class UserUtil {
         final byte[] paddingPassword = password(password);
         final byte[] publicKey = BaseEncoding.base64().decode(user.getCertificate());
         final byte[] encryptedPrivateKey = BaseEncoding.base64().decode(user.getPrivateKey());
-        final byte[] decryptedPrivateKey = SymmetricUtil.decrypt(paddingPassword,
-                encryptedPrivateKey);
-        return AsymmetricUtil.fromByteArray(publicKey, decryptedPrivateKey);
+        try {
+            final byte[] decryptedPrivateKey = SymmetricUtil.decrypt(paddingPassword, encryptedPrivateKey);
+            return AsymmetricUtil.fromByteArray(publicKey, decryptedPrivateKey);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Введен не верный пароль");
+        }
+    }
+
+    public static AsymmetricUtil.Keys changePassword(UserRepository repository,
+                                                     String username,
+                                                     String password,
+                                                     String newPassword) throws CryptoException {
+        final AsymmetricUtil.Keys keys = authorityUser(repository, username, password);
+        final User user = repository.find(username);
+        final byte[] paddingPassword = password(newPassword);
+        final byte[] encryptedPrivateKey = SymmetricUtil.encrypt(paddingPassword, keys.privateKey.getEncoded());
+        user.setPrivateKey(BaseEncoding.base64().encode(encryptedPrivateKey));
+        repository.save(user);
+        return keys;
     }
 
     static {

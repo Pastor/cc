@@ -12,4 +12,14 @@ final class CryptStorageApiImpl implements CryptStorageApi {
     public VersionApi getVersion() {
         return new VersionApiImpl(url);
     }
+
+    @Override
+    public StreamApi getStream() {
+        return new StreamApiImpl(url);
+    }
+
+    @Override
+    public UserApi getUser() {
+        return new UserApiImpl(url);
+    }
 }

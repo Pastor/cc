@@ -31,7 +31,7 @@ public final class UserUtilTest {
 
     @After
     public void tearDown() throws Exception {
-        repository.delete(user);
+        repository.deleteAll();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -60,6 +60,14 @@ public final class UserUtilTest {
     }
 
     @Test
+    public void changePasswordUser() throws Exception {
+        final User user = UserUtil.registerUser(repository, "user4@mail.ru", "password3");
+        assertEquals(user.getUsername(), "user4@mail.ru");
+        UserUtil.changePassword(repository, "user4@mail.ru", "password3", "password4");
+        UserUtil.authorityUser(repository, "user4@mail.ru", "password4");
+    }
+
+    @Test
     public void authorityUser() throws Exception {
         final AsymmetricUtil.Keys keys = UserUtil.authorityUser(repository, "user@mail.ru", "password");
         assertNotNull(keys);
@@ -68,7 +76,7 @@ public final class UserUtilTest {
     }
 
 
-    @Test(expected = CryptoException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void illegalPassword() throws Exception {
         UserUtil.authorityUser(repository, "user@mail.ru", "1");
     }

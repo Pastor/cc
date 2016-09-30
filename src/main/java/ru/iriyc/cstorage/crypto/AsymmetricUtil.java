@@ -3,10 +3,7 @@ package ru.iriyc.cstorage.crypto;
 import org.bouncycastle.crypto.CryptoException;
 
 import javax.crypto.Cipher;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -45,6 +42,45 @@ public final class AsymmetricUtil {
         final PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(key);
         final PrivateKey privateKey = FACTORY.generatePrivate(keySpec);
         decrypt(privateKey, input, output);
+    }
+
+    public static byte[] decrypt(PrivateKey privateKey, byte[] input)
+            throws CryptoException, InvalidKeySpecException {
+        try (final InputStream inputStream = new ByteArrayInputStream(input)) {
+            try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                decrypt(privateKey, inputStream, outputStream);
+                return outputStream.toByteArray();
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] encrypt(PublicKey publicKey, byte[] input)
+            throws CryptoException, InvalidKeySpecException {
+        try (final InputStream inputStream = new ByteArrayInputStream(input)) {
+            try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                encrypt(publicKey, inputStream, outputStream);
+                return outputStream.toByteArray();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] decrypt(byte[] privateKey, byte[] input)
+            throws CryptoException, InvalidKeySpecException {
+        final PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKey);
+        final PrivateKey key = FACTORY.generatePrivate(keySpec);
+        return decrypt(key, input);
+    }
+
+    public static byte[] encrypt(byte[] publicKey, byte[] input)
+            throws CryptoException, InvalidKeySpecException {
+        final X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKey);
+        final PublicKey key = FACTORY.generatePublic(keySpec);
+        return encrypt(key, input);
     }
 
     public static void encrypt(PublicKey publicKey, InputStream input, OutputStream output)
