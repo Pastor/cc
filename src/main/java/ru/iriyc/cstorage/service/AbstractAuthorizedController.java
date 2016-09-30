@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import ru.iriyc.cstorage.crypto.AsymmetricUtil;
 import ru.iriyc.cstorage.entity.User;
+import ru.iriyc.cstorage.repository.UserRepository;
 import ru.iriyc.cstorage.service.api.TokenService;
 
 abstract class AbstractAuthorizedController {
@@ -11,8 +12,12 @@ abstract class AbstractAuthorizedController {
     @Qualifier("tokenService.v1")
     protected TokenService tokenService;
 
+    @Autowired
+    private UserRepository userRepository;
+
     User authority(String token) {
-        return tokenService.getUser(token);
+        final User user = tokenService.getUser(token);
+        return userRepository.findOne(user.getId());
     }
 
     AsymmetricUtil.Keys keys(String token) {

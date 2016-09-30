@@ -14,8 +14,8 @@ final class CryptStorageApiImpl implements CryptStorageApi {
     }
 
     @Override
-    public StreamApi getStream() {
-        return new StreamApiImpl(url);
+    public StreamApi getStream(String token) {
+        return new StreamApiImpl(url, token);
     }
 
     @Override

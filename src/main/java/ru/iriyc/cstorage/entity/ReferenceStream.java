@@ -4,7 +4,6 @@ import lombok.*;
 import org.hibernate.annotations.Proxy;
 
 import javax.persistence.*;
-import java.util.Set;
 
 @Data
 @EqualsAndHashCode(callSuper = true, exclude = {"owner", "stream"})
@@ -16,7 +15,7 @@ import java.util.Set;
 public final class ReferenceStream extends AbstractEntity {
     @PrimaryKeyJoinColumn(name = "stream_id", referencedColumnName = "id")
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.DETACH, optional = false)
-    private SecretStream stream;
+    private Stream stream;
 
     @Column(name = "directory", nullable = false, length = Integer.MAX_VALUE)
     private String directory;
@@ -24,7 +23,7 @@ public final class ReferenceStream extends AbstractEntity {
     @Column(name = "secret_key", nullable = false, length = Integer.MAX_VALUE)
     private String secretKey;
 
-    @Column(name = "owner", nullable = false)
+    @Column(name = "owner", nullable = false, length = Integer.MAX_VALUE)
     private User owner;
 }
 

@@ -31,7 +31,7 @@ public final class User extends AbstractEntity {
     @Setter(AccessLevel.NONE)
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "owner", cascade = CascadeType.DETACH)
     @OrderBy("id")
-    private Set<SecretStream> streams;
+    private Set<Stream> streams;
 
     @JsonIgnore
     @Setter(AccessLevel.NONE)

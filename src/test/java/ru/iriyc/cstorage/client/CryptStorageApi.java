@@ -3,7 +3,7 @@ package ru.iriyc.cstorage.client;
 public interface CryptStorageApi {
     VersionApi getVersion();
 
-    StreamApi getStream();
+    StreamApi getStream(String token);
 
     UserApi getUser();
 }

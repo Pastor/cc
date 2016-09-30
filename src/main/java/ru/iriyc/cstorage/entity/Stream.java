@@ -12,14 +12,14 @@ import java.util.Set;
 @ToString(exclude = {"owner", "references"})
 @NoArgsConstructor
 @Proxy(lazy = false)
-@Entity(name = "SecretStream")
-@Table(name = "secret_stream")
-public final class SecretStream extends AbstractEntity {
+@Entity(name = "Stream")
+@Table(name = "stream")
+public final class Stream extends AbstractEntity {
     @JsonProperty(value = "name", required = true)
     @Column(name = "name", nullable = false, length = Integer.MAX_VALUE)
     private String name;
 
-    @JsonProperty(value = "size", required = true)
+    @JsonProperty(value = "length", required = true)
     @Column(name = "length", nullable = false)
     private long length;
 
@@ -35,7 +35,7 @@ public final class SecretStream extends AbstractEntity {
 //    private String contentReference;
 
     @PrimaryKeyJoinColumn(name = "owner_id", referencedColumnName = "id")
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.DETACH, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, optional = false)
     private User owner;
 
     @Setter(AccessLevel.NONE)

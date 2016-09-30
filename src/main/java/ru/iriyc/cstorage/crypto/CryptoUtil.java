@@ -25,7 +25,8 @@ public final class CryptoUtil {
 
             int readed;
             while ((readed = input.read(buffer)) > 0) {
-                output.write(cipher.update(buffer, 0, readed));
+                final byte[] update = cipher.update(buffer, 0, readed);
+                output.write(update);
             }
             final byte[] result = cipher.doFinal();
             output.write(result);
