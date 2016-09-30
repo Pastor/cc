@@ -3,12 +3,14 @@ package ru.iriyc.cstorage;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.web.HttpMessageConverters;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -22,7 +24,7 @@ import java.util.Properties;
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(
-        basePackages = {"ru.iriyc.cstorage.entity"},
+        basePackages = {"ru.iriyc.cstorage.repository"},
         basePackageClasses = {},
         entityManagerFactoryRef = "emFactory",
         transactionManagerRef = "emTransactionManager")
@@ -67,5 +69,11 @@ public class CryptStorageConfiguration {
         final JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());
         return transactionManager;
+    }
+
+    @Bean
+    public HttpMessageConverters customConverters() {
+        ByteArrayHttpMessageConverter arrayHttpMessageConverter = new ByteArrayHttpMessageConverter();
+        return new HttpMessageConverters(arrayHttpMessageConverter);
     }
 }

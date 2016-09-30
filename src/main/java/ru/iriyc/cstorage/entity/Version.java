@@ -19,7 +19,7 @@ public final class Version extends AbstractEntity {
     @Column(name = "major", nullable = false)
     private int major;
 
-    @Column(name = "build", nullable = false)
+    @Column(name = "minor", nullable = false)
     private int minor;
 
     @Column(name = "build", nullable = false)

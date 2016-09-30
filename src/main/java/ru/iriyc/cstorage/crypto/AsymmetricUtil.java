@@ -57,6 +57,12 @@ public final class AsymmetricUtil {
         CryptoUtil.doCrypto(Cipher.DECRYPT_MODE, privateKey, TRANSFORMATION, input, output);
     }
 
+    public static Keys fromByteArray(byte[] publicKey, byte[] privateKey) throws InvalidKeySpecException {
+        final PrivateKey pk = FACTORY.generatePrivate(new PKCS8EncodedKeySpec(privateKey));
+        final PublicKey certificate = FACTORY.generatePublic(new X509EncodedKeySpec(publicKey));
+        return new Keys(pk, certificate);
+    }
+
     public static final class Keys {
         public final PrivateKey privateKey;
         public final PublicKey publicKey;

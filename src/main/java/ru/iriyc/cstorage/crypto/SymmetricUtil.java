@@ -13,9 +13,34 @@ import java.security.SecureRandom;
 
 public final class SymmetricUtil {
     private static final SecureRandom random = new SecureRandom();
-    private static final int PRIVATE_KEY_SIZE = 128;
+    public static final int PRIVATE_KEY_SIZE = 128;
     private static final String ALGORITHM = "AES";
     private static final String TRANSFORMATION = "AES";
+
+    public static byte[] encrypt(byte[] key, byte[] input)
+            throws CryptoException {
+        try (final InputStream inputStream = new ByteArrayInputStream(input)) {
+            try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                doCrypto(Cipher.ENCRYPT_MODE, key, inputStream, outputStream);
+                return outputStream.toByteArray();
+            }
+        } catch (IOException ex) {
+            throw new CryptoException("Error encrypting/decrypting", ex);
+        }
+    }
+
+    public static byte[] decrypt(byte[] key, byte[] input)
+            throws CryptoException {
+        try (final InputStream inputStream = new ByteArrayInputStream(input)) {
+            try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                doCrypto(Cipher.DECRYPT_MODE, key, inputStream, outputStream);
+                return outputStream.toByteArray();
+            }
+        } catch (IOException ex) {
+            throw new CryptoException("Error encrypting/decrypting", ex);
+        }
+    }
+
 
     public static void encrypt(byte[] key, File inputFile, File outputFile)
             throws CryptoException {
