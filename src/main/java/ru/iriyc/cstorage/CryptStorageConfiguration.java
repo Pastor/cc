@@ -30,8 +30,12 @@ import java.util.Properties;
         transactionManagerRef = "emTransactionManager")
 
 public class CryptStorageConfiguration {
+    private final Environment environment;
+
     @Autowired
-    private Environment environment;
+    public CryptStorageConfiguration(Environment environment) {
+        this.environment = environment;
+    }
 
     @Bean(name = "dataSource")
     @Primary

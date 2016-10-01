@@ -7,10 +7,6 @@ import org.springframework.context.annotation.Import;
 
 @SpringBootApplication
 @Import({CryptStorageConfiguration.class})
-//@ComponentScan(basePackages = {
-//		"ru.iriyc.cstorage.service",
-//		"ru.iriyc.cstorage.repository"
-//})
 public class CryptStorageApplication {
 
 	public static void main(String[] args) {

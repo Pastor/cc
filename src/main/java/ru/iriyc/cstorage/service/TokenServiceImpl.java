@@ -30,8 +30,12 @@ final class TokenServiceImpl implements TokenService {
 
     private static final SecureRandom random = new SecureRandom();
 
+    private final UserRepository userRepository;
+
     @Autowired
-    private UserRepository userRepository;
+    public TokenServiceImpl(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Override
     public void updateToken(String token) {

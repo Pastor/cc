@@ -19,12 +19,16 @@ import java.security.NoSuchAlgorithmException;
 @RequestMapping({"/rest/api/v1/", "/rest/api/"})
 final class UserController extends AbstractAuthorizedController {
 
-    @Autowired
-    @Qualifier("tokenService.v1")
-    private TokenService tokenService;
+    private final TokenService tokenService;
+    private final UserRepository userRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    public UserController(@Qualifier("tokenService.v1") TokenService tokenService,
+                          UserRepository userRepository) {
+        super(tokenService, userRepository);
+        this.tokenService = tokenService;
+        this.userRepository = userRepository;
+    }
 
     @RequestMapping(path = "/login", method = RequestMethod.POST, produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> login(@RequestParam("username") String username,

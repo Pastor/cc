@@ -8,12 +8,15 @@ import ru.iriyc.cstorage.repository.UserRepository;
 import ru.iriyc.cstorage.service.api.TokenService;
 
 abstract class AbstractAuthorizedController {
-    @Autowired
-    @Qualifier("tokenService.v1")
-    protected TokenService tokenService;
+    private final TokenService tokenService;
+    private final UserRepository userRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    public AbstractAuthorizedController(@Qualifier("tokenService.v1") TokenService tokenService,
+                                        UserRepository userRepository) {
+        this.tokenService = tokenService;
+        this.userRepository = userRepository;
+    }
 
     User authority(String token) {
         final User user = tokenService.getUser(token);

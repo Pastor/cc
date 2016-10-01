@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import ru.iriyc.cstorage.entity.Stream;
 import ru.iriyc.cstorage.entity.User;
 import ru.iriyc.cstorage.repository.StreamRepository;
-import ru.iriyc.cstorage.service.api.FileService;
+import ru.iriyc.cstorage.repository.UserRepository;
+import ru.iriyc.cstorage.service.api.StreamService;
+import ru.iriyc.cstorage.service.api.TokenService;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -30,13 +32,18 @@ import static java.lang.String.format;
 @RestController("streamController")
 class StreamController extends AbstractAuthorizedController {
 
-    @Autowired
-    @Qualifier("fileService.v1")
-    private FileService fileService;
+    private final StreamService streamService;
+    private final StreamRepository streamRepository;
 
     @Autowired
-    @Qualifier("streamRepository.v1")
-    private StreamRepository streamRepository;
+    public StreamController(@Qualifier("streamRepository.v1") StreamRepository streamRepository,
+                            @Qualifier("fileService.v1") StreamService streamService,
+                            @Qualifier("tokenService.v1") TokenService tokenService,
+                            UserRepository userRepository) {
+        super(tokenService, userRepository);
+        this.streamRepository = streamRepository;
+        this.streamService = streamService;
+    }
 
     @Transactional
     @RequestMapping(path = "/stream", method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
@@ -56,7 +63,7 @@ class StreamController extends AbstractAuthorizedController {
         final Stream stream = streamRepository.findOne(id);
         response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
         response.setContentLength((int) stream.getLength());
-        try (InputStream istream = fileService.stream(stream, token)) {
+        try (InputStream istream = streamService.stream(stream, token)) {
             final byte[] bytes = ByteStreams.toByteArray(istream);
             response.getOutputStream().write(bytes);
         }
@@ -79,7 +86,7 @@ class StreamController extends AbstractAuthorizedController {
             throw new RuntimeException(format("Переданное содержимое по размеру не соответствует метаданным %d != %d",
                     length, stream.getLength()));
         try (final InputStream inputStream = request.getInputStream()) {
-            fileService.store(stream, inputStream, token);
+            streamService.store(stream, inputStream, token);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

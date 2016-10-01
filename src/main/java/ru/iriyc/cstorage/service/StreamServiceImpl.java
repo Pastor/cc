@@ -13,7 +13,7 @@ import ru.iriyc.cstorage.entity.ReferenceStream;
 import ru.iriyc.cstorage.entity.Stream;
 import ru.iriyc.cstorage.entity.User;
 import ru.iriyc.cstorage.repository.ReferenceStreamRepository;
-import ru.iriyc.cstorage.service.api.FileService;
+import ru.iriyc.cstorage.service.api.StreamService;
 import ru.iriyc.cstorage.service.api.TokenService;
 
 import javax.annotation.PostConstruct;
@@ -22,15 +22,19 @@ import java.io.*;
 
 @Service("fileService.v1")
 @Slf4j
-final class FileServiceImpl implements FileService {
+final class StreamServiceImpl implements StreamService {
 
     private static final File outputDirectory = new File(".secret");
 
-    @Autowired
-    private TokenService service;
+    private final TokenService service;
+    private final ReferenceStreamRepository referenceStreamRepository;
 
     @Autowired
-    private ReferenceStreamRepository referenceStreamRepository;
+    public StreamServiceImpl(TokenService service,
+                             ReferenceStreamRepository referenceStreamRepository) {
+        this.service = service;
+        this.referenceStreamRepository = referenceStreamRepository;
+    }
 
     @PostConstruct
     private void construct() {

@@ -1,10 +1,12 @@
 package ru.iriyc.cstorage.service.api;
 
-import ru.iriyc.cstorage.crypto.AsymmetricUtil;
-import ru.iriyc.cstorage.entity.User;
+import ru.iriyc.cstorage.entity.Stream;
 
 import java.io.InputStream;
 
 public interface StreamService {
-    void store(AsymmetricUtil.Keys keys, User user, InputStream stream);
+
+    void store(Stream stream, InputStream inputStream, String token);
+
+    InputStream stream(Stream stream, String token);
 }
