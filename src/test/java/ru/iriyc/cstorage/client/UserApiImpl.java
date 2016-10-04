@@ -2,9 +2,12 @@ package ru.iriyc.cstorage.client;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
+import retrofit2.http.Body;
+import retrofit2.http.GET;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 import ru.iriyc.cstorage.entity.User;
+import ru.iriyc.cstorage.entity.UserProfile;
 
 import java.io.IOException;
 

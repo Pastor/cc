@@ -38,4 +38,10 @@ public final class User extends AbstractEntity {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "owner", cascade = CascadeType.DETACH)
     @OrderBy("id")
     private Set<Token> tokens;
+
+    @JsonIgnore
+    @Setter(AccessLevel.NONE)
+    @JoinColumn(name = "user_profile_id", referencedColumnName = "id")
+    @OneToOne(cascade = CascadeType.DETACH, fetch = FetchType.EAGER)
+    private UserProfile userProfile;
 }

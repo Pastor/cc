@@ -22,4 +22,9 @@ final class CryptStorageApiImpl implements CryptStorageApi {
     public UserApi getUser() {
         return new UserApiImpl(url);
     }
+
+    @Override
+    public UserProfileApi getProfileApi(String token) {
+        return new UserProfileApiImpl(url, token);
+    }
 }

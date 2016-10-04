@@ -12,6 +12,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import ru.iriyc.cstorage.client.CryptoStorageApiFactory;
 import ru.iriyc.cstorage.client.UserApi;
 import ru.iriyc.cstorage.entity.User;
+import ru.iriyc.cstorage.entity.UserProfile;
 import ru.iriyc.cstorage.repository.UserRepository;
 import ru.iriyc.cstorage.service.api.TokenService;
 
@@ -19,6 +20,7 @@ import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -66,5 +68,4 @@ public final class UserControllerTest {
         assertNotNull(user);
         assertEquals(user.getUsername(), "viruszold@mail.ru");
     }
-
 }

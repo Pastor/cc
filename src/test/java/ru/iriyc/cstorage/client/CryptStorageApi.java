@@ -6,4 +6,6 @@ public interface CryptStorageApi {
     StreamApi getStream(String token);
 
     UserApi getUser();
+
+    UserProfileApi getProfileApi(String token);
 }

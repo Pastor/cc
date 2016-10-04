@@ -7,6 +7,7 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.ResponseBody;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
@@ -19,7 +20,10 @@ import java.util.concurrent.TimeUnit;
 
 abstract class RestApiController<Api> {
     private static final Gson GSON = new GsonBuilder().setLenient().setPrettyPrinting().create();
+    private static final HttpLoggingInterceptor logging = new HttpLoggingInterceptor()
+            .setLevel(HttpLoggingInterceptor.Level.BODY);
     private static final OkHttpClient client = new OkHttpClient.Builder()
+            .addInterceptor(logging)
             .readTimeout(5, TimeUnit.SECONDS).writeTimeout(5, TimeUnit.SECONDS).build();
     final Api api;
     final Retrofit retrofit;
