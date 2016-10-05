@@ -8,4 +8,6 @@ public interface CryptStorageApi {
     UserApi getUser();
 
     UserProfileApi getProfileApi(String token);
+
+    CollaborationApi getCollaboration(String token);
 }

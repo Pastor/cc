@@ -10,8 +10,8 @@ import javax.persistence.*;
 import java.util.Set;
 
 @Data
-@EqualsAndHashCode(callSuper = true, exclude = {"streams", "tokens"})
-@ToString(exclude = {"streams", "tokens"})
+@EqualsAndHashCode(callSuper = true, exclude = {"streams", "tokens", "collaborations"})
+@ToString(exclude = {"streams", "tokens", "collaborations"})
 @NoArgsConstructor
 @Proxy(lazy = false)
 @Entity(name = "User")
@@ -44,4 +44,13 @@ public final class User extends AbstractEntity {
     @Setter(AccessLevel.NONE)
     @OneToOne(fetch = FetchType.LAZY, optional = false, mappedBy = "user")
     private UserProfile userProfile;
+
+    @JsonProperty("collaboration")
+    @Setter(AccessLevel.NONE)
+    @OneToOne(fetch = FetchType.LAZY, optional = false, mappedBy = "owner")
+    private Collaboration collaboration;
+
+    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.DETACH)
+    @OrderBy("id")
+    private Set<Collaboration> collaborations;
 }
