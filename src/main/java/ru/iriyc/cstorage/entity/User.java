@@ -1,6 +1,7 @@
 package ru.iriyc.cstorage.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import org.hibernate.annotations.Proxy;
 import org.hibernate.validator.constraints.Email;
@@ -14,17 +15,17 @@ import java.util.Set;
 @NoArgsConstructor
 @Proxy(lazy = false)
 @Entity(name = "User")
-@Table(name = "user")
+@Table(name = "user_table")
 public final class User extends AbstractEntity {
     @Email
     @Column(name = "username", nullable = false)
     private String username;
 
-    @Column(name = "certificate", nullable = false, length = Integer.MAX_VALUE)
+    @Column(name = "certificate", nullable = false, length = 10485760)
     private String certificate;
 
     @JsonIgnore
-    @Column(name = "private_key", nullable = false, length = Integer.MAX_VALUE)
+    @Column(name = "private_key", nullable = false, length = 10485760)
     private String privateKey;
 
     @JsonIgnore
@@ -39,9 +40,8 @@ public final class User extends AbstractEntity {
     @OrderBy("id")
     private Set<Token> tokens;
 
-    @JsonIgnore
+    @JsonProperty("profile")
     @Setter(AccessLevel.NONE)
-    @JoinColumn(name = "user_profile_id", referencedColumnName = "id")
-    @OneToOne(cascade = CascadeType.DETACH, fetch = FetchType.EAGER)
+    @OneToOne(fetch = FetchType.LAZY, optional = false, mappedBy = "user")
     private UserProfile userProfile;
 }

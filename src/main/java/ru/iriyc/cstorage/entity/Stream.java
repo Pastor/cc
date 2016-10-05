@@ -16,7 +16,7 @@ import java.util.Set;
 @Table(name = "stream")
 public final class Stream extends AbstractEntity {
     @JsonProperty(value = "name", required = true)
-    @Column(name = "name", nullable = false, length = Integer.MAX_VALUE)
+    @Column(name = "name", nullable = false, length = 10485760)
     private String name;
 
     @JsonProperty(value = "length", required = true)
@@ -28,7 +28,7 @@ public final class Stream extends AbstractEntity {
     private String hash;
 
     @JsonProperty(value = "signature")
-    @Column(name = "signature", length = Integer.MAX_VALUE)
+    @Column(name = "signature", length = 10485760)
     private String signature;
 
 //    @Column(name = "content_ref", length = Integer.MAX_VALUE, nullable = false)

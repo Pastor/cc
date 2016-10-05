@@ -17,13 +17,13 @@ public final class ReferenceStream extends AbstractEntity {
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.DETACH, optional = false)
     private Stream stream;
 
-    @Column(name = "directory", nullable = false, length = Integer.MAX_VALUE)
+    @Column(name = "directory", nullable = false, length = 10485760)
     private String directory;
 
-    @Column(name = "secret_key", nullable = false, length = Integer.MAX_VALUE)
+    @Column(name = "secret_key", nullable = false, length = 10485760)
     private String secretKey;
 
-    @Column(name = "owner", nullable = false, length = Integer.MAX_VALUE)
+    @Column(name = "owner", nullable = false, length = 10485760)
     private User owner;
 }
 

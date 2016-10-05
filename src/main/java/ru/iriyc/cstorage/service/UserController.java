@@ -59,9 +59,7 @@ class UserController extends AbstractAuthorizedController {
         final UserProfile profile = user.getUserProfile();
         if (profile == null)
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
-        final Long id = profile.getId();
-        final UserProfile one = userProfileRepository.findOne(id);
-        return ResponseEntity.ok(one);
+        return ResponseEntity.ok(profile);
     }
 
     @RequestMapping(path = "/me/plan", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)

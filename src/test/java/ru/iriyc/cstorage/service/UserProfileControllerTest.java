@@ -42,6 +42,8 @@ public final class UserProfileControllerTest {
 
     @Before
     public void setUp() throws Exception {
+        profileRepository.deleteAll();
+        repository.deleteAll();
         final CryptStorageApi storageApi = CryptoStorageApiFactory.api("http://localhost:" + port);
         final UserApi userApi = storageApi.getUser();
         final User user = userApi.register("viruszold@mail.ru", "password");
@@ -51,8 +53,8 @@ public final class UserProfileControllerTest {
 
     @After
     public void tearDown() throws Exception {
+        profileRepository.deleteAll();
         repository.deleteAll();
-        //profileRepository.deleteAll();
     }
 
     @Test
@@ -83,6 +85,5 @@ public final class UserProfileControllerTest {
         assertEquals(me.getFirstName(), profile.getFirstName());
         assertEquals(me.getLastName(), profile.getLastName());
         assertEquals(me.getMiddleName(), profile.getMiddleName());
-        assertNotNull(profile.getUser());
     }
 }

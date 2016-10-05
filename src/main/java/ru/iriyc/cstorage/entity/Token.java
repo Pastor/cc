@@ -20,7 +20,7 @@ import java.time.temporal.ChronoUnit;
 @Entity(name = "Token")
 @Table(name = "token")
 public final class Token extends AbstractEntity {
-    @Column(name = "token", nullable = false, length = Integer.MAX_VALUE)
+    @Column(name = "token", nullable = false, length = 10485760)
     private String token;
 
     @JsonProperty("expired_at")

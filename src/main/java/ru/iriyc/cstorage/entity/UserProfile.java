@@ -4,10 +4,7 @@ import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.gson.annotations.SerializedName;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.annotations.Proxy;
 
 import javax.persistence.*;
@@ -42,7 +39,8 @@ public final class UserProfile extends AbstractEntity {
     @Column(name = "enterprise_plan")
     private EnterprisePlan enterprisePlan = EnterprisePlan.FREE;
 
-    @JsonProperty("user")
-    @OneToOne(fetch = FetchType.LAZY, optional = false, mappedBy = "userProfile", cascade = CascadeType.DETACH)
+    @JsonIgnore
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    @OneToOne(fetch = FetchType.EAGER)
     private User user;
 }
