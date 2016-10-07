@@ -16,6 +16,8 @@ interface Entity2 {
     val id: Long
     val createdAt: LocalDateTime
     val updatedAt: LocalDateTime
+
+    fun copy(): Entity2
 }
 
 interface IdentityGenerator {
@@ -45,12 +47,17 @@ data class User2(
         @JsonProperty("middle_name")
         @Column(name = "middle_name")
         val middleName: String? = null) : Entity2 {
+    override fun copy(): Entity2 = this.copy(this.id)
+
+    lateinit var next: String
+
     companion object : Factory<User2> {
         @JvmStatic
         override fun create(generator: IdentityGenerator): User2 = User2(id = generator.next(), firstName = "", lastName = "")
     }
 }
 
+@Suppress("unused")
 fun User2.copy(id: Long = this.id,
                createdAt: LocalDateTime = this.createdAt,
                updatedAt: LocalDateTime = this.updatedAt,
@@ -58,9 +65,10 @@ fun User2.copy(id: Long = this.id,
                lastName: String = this.lastName): User2 = User2(id, createdAt, updatedAt, firstName, lastName)
 
 fun main(args: Array<String>) {
+    @Suppress("unused_variable")
     val ignore: Factory<User2> = User2.Companion
 
-    val entity = User2.create(object : IdentityGenerator {
+    val entity: Entity2 = User2.create(object : IdentityGenerator {
         override fun next(): Long {
             return LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
         }

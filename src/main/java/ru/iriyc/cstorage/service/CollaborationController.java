@@ -21,8 +21,6 @@ import java.util.Set;
 @RequestMapping({"/rest/api/v1/", "/rest/api/"})
 class CollaborationController extends AbstractAuthorizedController {
 
-    private final TokenService tokenService;
-    private final UserRepository userRepository;
     private final CollaboratorRepository collaboratorRepository;
 
     @Autowired
@@ -30,8 +28,6 @@ class CollaborationController extends AbstractAuthorizedController {
                                    @Qualifier("userRepository.v1") UserRepository userRepository,
                                    @Qualifier("collaboratorRepository.v1") CollaboratorRepository collaboratorRepository) {
         super(tokenService, userRepository);
-        this.tokenService = tokenService;
-        this.userRepository = userRepository;
         this.collaboratorRepository = collaboratorRepository;
     }
 
@@ -59,6 +55,7 @@ class CollaborationController extends AbstractAuthorizedController {
                                                @RequestBody Collaborator collaborator) {
         final User user = authority(token);
         collaborator.setOwner(user);
+        collaborator.clearMembers();
         collaborator = collaboratorRepository.save(collaborator);
         return ResponseEntity.status(HttpStatus.CREATED).body(collaborator);
     }

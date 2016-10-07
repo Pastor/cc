@@ -66,7 +66,7 @@ final class TokenServiceImpl implements TokenService {
         final User user = usersCache.getIfPresent(token);
         if (user == null)
             throw new RuntimeException("Ошибка получения пользователя по токену");
-        return user;
+        return userRepository.findOne(user.getId());
     }
 
     @Override

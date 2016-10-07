@@ -31,7 +31,7 @@ public final class Collaborator extends AbstractEntity {
     @OrderBy("id")
     private Set<User> members;
 
-    public void cleaMembers() {
+    public void clearMembers() {
         if (getMembers() != null)
             getMembers().clear();
     }
