@@ -49,6 +49,7 @@ data class User2(
         val middleName: String? = null) : Entity2 {
     override fun copy(): Entity2 = this.copy(this.id)
 
+    @Column
     lateinit var next: String
 
     companion object : Factory<User2> {
