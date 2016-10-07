@@ -1,5 +1,7 @@
 package ru.iriyc.cstorage.service;
 
+import com.google.common.hash.Hashing;
+import com.google.common.io.Files;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -8,20 +10,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import ru.iriyc.cstorage.client.CryptStorageApi;
-import ru.iriyc.cstorage.client.CryptoStorageApiFactory;
-import ru.iriyc.cstorage.client.StreamApi;
-import ru.iriyc.cstorage.client.UserApi;
+import ru.iriyc.cstorage.client.*;
 import ru.iriyc.cstorage.entity.Stream;
 import ru.iriyc.cstorage.repository.ReferenceStreamRepository;
 import ru.iriyc.cstorage.repository.StreamRepository;
 import ru.iriyc.cstorage.repository.UserRepository;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Set;
 
 import static org.junit.Assert.*;
 
@@ -45,13 +44,19 @@ public final class StreamControllerTest {
 
     private StreamApi api;
 
+    private UserProfileApi userProfileApi;
+
+    private long otherUserId;
+
     @Before
     public void setUp() throws Exception {
         final CryptStorageApi api = CryptoStorageApiFactory.api("http://localhost:" + port);
         final UserApi userApi = api.getUser();
         userApi.register("viruszold@mail.ru", "password");
+        otherUserId = userApi.register("viruszold@gmail.com", "password").getId();
         final String token = userApi.login("viruszold@mail.ru", "password");
         this.api = api.getStream(token);
+        this.userProfileApi = api.getProfileApi(token);
     }
 
     @After
@@ -70,9 +75,12 @@ public final class StreamControllerTest {
     }
 
     private Stream createStream(Stream stream) throws IOException {
-        stream.setName("TestFile");
-        stream.setLength(4096);
-        stream.setHash("HASH");
+        final URL resource = StreamControllerTest.class.getResource("/LICENSE");
+        final File file = new File(resource.getFile());
+        stream.setName(file.getName());
+        stream.setLength(file.length());
+        final String hash = Hashing.sha256().hashBytes(Files.toByteArray(file)).toString();
+        stream.setHash(hash);
         stream.setSignature("SIGNATURE");
         return api.create(stream);
     }
@@ -95,10 +103,42 @@ public final class StreamControllerTest {
         upload(result);
     }
 
+    @Test
+    public void link() throws Exception {
+        final Stream stream = new Stream();
+        final Stream result = createStream(stream);
+        final byte[] upload = upload(result);
+        assertNotNull(upload);
+        this.api.link(result.getId(), otherUserId);
+        final CryptStorageApi api = CryptoStorageApiFactory.api("http://localhost:" + port);
+        final UserApi userApi = api.getUser();
+        final String token = userApi.login("viruszold@gmail.com", "password");
+        final StreamApi apiStream = api.getStream(token);
+        try (final ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            apiStream.download(result.getId(), output);
+            assertTrue(Arrays.equals(upload, output.toByteArray()));
+        }
+    }
+
+    @Test
+    public void streams() throws Exception {
+        final Stream stream = new Stream();
+        final Stream result = createStream(stream);
+        final byte[] upload = upload(result);
+        final Set<Stream> streams = userProfileApi.streams();
+        assertEquals(streams.size(), 1);
+        final Long id = streams.iterator().next().getId();
+        try (final ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            api.download(id, output);
+            assertTrue(Arrays.equals(upload, output.toByteArray()));
+        }
+    }
+
     private byte[] upload(Stream result) throws IOException {
-        final byte[] buf = new byte[(int) result.getLength()];
-        random.nextBytes(buf);
-        try (final ByteArrayInputStream input = new ByteArrayInputStream(buf)) {
+        final URL resource = StreamControllerTest.class.getResource("/LICENSE");
+        final File file = new File(resource.getFile());
+        final byte[] buf = Files.toByteArray(file);
+        try (final InputStream input = new ByteArrayInputStream(buf)) {
             api.upload(result.getId(), input);
         }
         return buf;

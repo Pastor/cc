@@ -1,10 +1,9 @@
 package ru.iriyc.cstorage.service;
 
-import com.google.common.base.Charsets;
-import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.iriyc.cstorage.crypto.AsymmetricUtil;
@@ -13,14 +12,19 @@ import ru.iriyc.cstorage.entity.ReferenceStream;
 import ru.iriyc.cstorage.entity.Stream;
 import ru.iriyc.cstorage.entity.User;
 import ru.iriyc.cstorage.repository.ReferenceStreamRepository;
+import ru.iriyc.cstorage.repository.StreamRepository;
 import ru.iriyc.cstorage.service.api.StreamService;
 import ru.iriyc.cstorage.service.api.TokenService;
 
 import javax.annotation.PostConstruct;
 import java.io.*;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
-@Service("fileService.v1")
+@Service("streamService.v1")
 @Slf4j
 final class StreamServiceImpl implements StreamService {
 
@@ -28,12 +32,15 @@ final class StreamServiceImpl implements StreamService {
 
     private final TokenService service;
     private final ReferenceStreamRepository referenceStreamRepository;
+    private final StreamRepository streamRepository;
 
     @Autowired
-    public StreamServiceImpl(TokenService service,
-                             ReferenceStreamRepository referenceStreamRepository) {
+    public StreamServiceImpl(@Qualifier("tokenService.v1") TokenService service,
+                             @Qualifier("referenceStreamRepository.v1") ReferenceStreamRepository referenceStreamRepository,
+                             @Qualifier("streamRepository.v1") StreamRepository streamRepository) {
         this.service = service;
         this.referenceStreamRepository = referenceStreamRepository;
+        this.streamRepository = streamRepository;
     }
 
     @PostConstruct
@@ -44,7 +51,8 @@ final class StreamServiceImpl implements StreamService {
     }
 
     private static File file(String hash) {
-        final String fileName = Hashing.sha256().hashBytes(hash.getBytes(Charsets.UTF_8)).toString().toUpperCase();
+        final String fileName = hash.toUpperCase();
+        //Hashing.sha256().hashBytes(hash.getBytes(Charsets.UTF_8)).toString().toUpperCase();
         return new File(outputDirectory, fileName);
     }
 
@@ -57,7 +65,9 @@ final class StreamServiceImpl implements StreamService {
             final byte[] privateKey = SymmetricUtil.generatePrivateKey();
             final byte[] encryptedSecretKey = AsymmetricUtil.encrypt(keys.publicKey, privateKey);
             try (final OutputStream output = new FileOutputStream(file(stream.getHash()))) {
-                SymmetricUtil.encrypt(privateKey, inputStream, output);
+                final String hash = SymmetricUtil.encrypt(privateKey, inputStream, output);
+                if (!hash.equalsIgnoreCase(stream.getHash()))
+                    throw new RuntimeException("Hash не совпадает");
             }
             log.info("Store. PrivateKey: {}", BaseEncoding.base64().encode(privateKey));
             final ReferenceStream reference = new ReferenceStream();
@@ -97,5 +107,37 @@ final class StreamServiceImpl implements StreamService {
             log.error("", e);
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void link(String token, Stream stream, User linkTo) throws InvalidKeySpecException {
+        final AsymmetricUtil.Keys keys = service.getKeys(token);
+        final PublicKey publicKey = service.getKeys(linkTo);
+        final User owner = service.getUser(token);
+        final ReferenceStream streamReference = referenceStreamRepository.find(stream, owner);
+
+        final byte[] encryptedSecretKey;
+        try {
+            final byte[] encryptedOwnerSecretKey = BaseEncoding.base64().decode(streamReference.getSecretKey());
+            final byte[] decryptSecretKey = AsymmetricUtil.decrypt(keys.privateKey, encryptedOwnerSecretKey);
+            log.info("Load.  PrivateKey: {}", BaseEncoding.base64().encode(decryptSecretKey));
+            encryptedSecretKey = AsymmetricUtil.encrypt(publicKey, decryptSecretKey);
+        } catch (Exception e) {
+            log.error("", e);
+            throw new RuntimeException(e);
+        }
+        final ReferenceStream reference = new ReferenceStream();
+        reference.setOwner(linkTo);
+        reference.setStream(stream);
+        reference.setSecretKey(BaseEncoding.base64().encode(encryptedSecretKey));
+            /* FIXME: Установить виртуальную папку */
+        reference.setDirectory(outputDirectory.getAbsolutePath());
+        referenceStreamRepository.save(reference);
+    }
+
+    @Override
+    public Set<Stream> list(User owner) {
+        return referenceStreamRepository.list(owner).stream().map((referenceStream ->
+                streamRepository.findOne(referenceStream.getStream().getId()))).collect(Collectors.toSet());
     }
 }

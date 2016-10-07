@@ -1,5 +1,6 @@
 package ru.iriyc.cstorage.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import org.hibernate.annotations.Proxy;
@@ -34,10 +35,12 @@ public final class Stream extends AbstractEntity {
 //    @Column(name = "content_ref", length = Integer.MAX_VALUE, nullable = false)
 //    private String contentReference;
 
+    @JsonProperty("owner")
     @PrimaryKeyJoinColumn(name = "owner_id", referencedColumnName = "id")
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, optional = false)
     private User owner;
 
+    @JsonIgnore
     @Setter(AccessLevel.NONE)
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "stream", cascade = CascadeType.DETACH)
     @OrderBy("id")

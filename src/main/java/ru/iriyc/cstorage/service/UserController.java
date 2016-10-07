@@ -13,13 +13,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.iriyc.cstorage.entity.EnterprisePlan;
+import ru.iriyc.cstorage.entity.Stream;
 import ru.iriyc.cstorage.entity.User;
 import ru.iriyc.cstorage.entity.UserProfile;
 import ru.iriyc.cstorage.repository.UserProfileRepository;
 import ru.iriyc.cstorage.repository.UserRepository;
+import ru.iriyc.cstorage.service.api.StreamService;
 import ru.iriyc.cstorage.service.api.TokenService;
 
 import java.security.NoSuchAlgorithmException;
+import java.util.Set;
 
 @Service("userController.v1")
 @RequestMapping({"/rest/api/v1/", "/rest/api/"})
@@ -28,15 +31,18 @@ class UserController extends AbstractAuthorizedController {
     private final TokenService tokenService;
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final StreamService streamService;
 
     @Autowired
     public UserController(@Qualifier("tokenService.v1") TokenService tokenService,
-                          UserRepository userRepository,
-                          UserProfileRepository userProfileRepository) {
+                          @Qualifier("userRepository.v1") UserRepository userRepository,
+                          @Qualifier("userProfileRepository.v1") UserProfileRepository userProfileRepository,
+                          @Qualifier("streamService.v1") StreamService streamService) {
         super(tokenService, userRepository);
         this.tokenService = tokenService;
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
+        this.streamService = streamService;
     }
 
     @RequestMapping(path = "/login", method = RequestMethod.POST, produces = MediaType.TEXT_PLAIN_VALUE)
@@ -69,6 +75,12 @@ class UserController extends AbstractAuthorizedController {
             return ResponseEntity.ok(EnterprisePlan.FREE.name().toLowerCase());
         final UserProfile profile = userProfileRepository.findOne(user.getUserProfile().getId());
         return ResponseEntity.ok(profile.getEnterprisePlan().name().toLowerCase());
+    }
+
+    @RequestMapping(path = "/me/streams", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<Set<Stream>> meStreams(@RequestParam("token") String token) {
+        final User user = authority(token);
+        return ResponseEntity.ok(streamService.list(user));
     }
 
     @Transactional

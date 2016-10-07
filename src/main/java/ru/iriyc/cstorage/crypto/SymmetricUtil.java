@@ -42,19 +42,19 @@ public final class SymmetricUtil {
     }
 
 
-    public static void encrypt(byte[] key, File inputFile, File outputFile)
+    public static String encrypt(byte[] key, File inputFile, File outputFile)
             throws CryptoException {
-        doCrypto(Cipher.ENCRYPT_MODE, key, inputFile, outputFile);
+        return doCrypto(Cipher.ENCRYPT_MODE, key, inputFile, outputFile);
     }
 
-    public static void decrypt(byte[] key, File inputFile, File outputFile)
+    public static String decrypt(byte[] key, File inputFile, File outputFile)
             throws CryptoException {
-        doCrypto(Cipher.DECRYPT_MODE, key, inputFile, outputFile);
+        return doCrypto(Cipher.DECRYPT_MODE, key, inputFile, outputFile);
     }
 
-    public static void encrypt(byte[] key, InputStream input, OutputStream output)
+    public static String encrypt(byte[] key, InputStream input, OutputStream output)
             throws CryptoException {
-        doCrypto(Cipher.ENCRYPT_MODE, key, input, output);
+        return doCrypto(Cipher.ENCRYPT_MODE, key, input, output);
     }
 
     public static void decrypt(byte[] key, InputStream input, OutputStream output)
@@ -62,17 +62,17 @@ public final class SymmetricUtil {
         doCrypto(Cipher.DECRYPT_MODE, key, input, output);
     }
 
-    private static void doCrypto(int cipherMode, byte[] key, InputStream input, OutputStream output)
+    private static String doCrypto(int cipherMode, byte[] key, InputStream input, OutputStream output)
             throws CryptoException {
         final Key secretKey = new SecretKeySpec(key, ALGORITHM);
-        CryptoUtil.doCrypto(cipherMode, secretKey, TRANSFORMATION, input, output);
+        return CryptoUtil.doCrypto(cipherMode, secretKey, TRANSFORMATION, input, output);
     }
 
-    private static void doCrypto(int cipherMode, byte[] key, File inputFile,
-                                 File outputFile) throws CryptoException {
+    private static String doCrypto(int cipherMode, byte[] key, File inputFile,
+                                   File outputFile) throws CryptoException {
         try (InputStream input = new FileInputStream(inputFile)) {
             try (OutputStream output = new FileOutputStream(outputFile)) {
-                doCrypto(cipherMode, key, input, output);
+                return doCrypto(cipherMode, key, input, output);
             }
         } catch (IOException ex) {
             throw new CryptoException("Error encrypting/decrypting file", ex);

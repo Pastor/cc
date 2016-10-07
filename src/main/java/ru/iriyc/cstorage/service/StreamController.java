@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.spec.InvalidKeySpecException;
 
 import static java.lang.String.format;
 
@@ -37,9 +38,9 @@ class StreamController extends AbstractAuthorizedController {
 
     @Autowired
     public StreamController(@Qualifier("streamRepository.v1") StreamRepository streamRepository,
-                            @Qualifier("fileService.v1") StreamService streamService,
+                            @Qualifier("streamService.v1") StreamService streamService,
                             @Qualifier("tokenService.v1") TokenService tokenService,
-                            UserRepository userRepository) {
+                            @Qualifier("userRepository.v1") UserRepository userRepository) {
         super(tokenService, userRepository);
         this.streamRepository = streamRepository;
         this.streamService = streamService;
@@ -53,6 +54,21 @@ class StreamController extends AbstractAuthorizedController {
         stream.setOwner(user);
         final Stream save = streamRepository.save(stream);
         return ResponseEntity.ok(save);
+    }
+
+    @Transactional
+    @RequestMapping(path = "/stream/{id}/link/{idUser}", method = RequestMethod.PUT)
+    public ResponseEntity<Void> link(@RequestParam("token") String token,
+                                     @PathVariable(name = "id") long id,
+                                     @PathVariable(name = "idUser") long idUser)
+            throws InvalidKeySpecException {
+        final User user = authority(token);
+        final Stream stream = streamRepository.findOne(id);
+        final User linkTo = userRepository.findOne(idUser);
+        if (linkTo == null || stream == null)
+            return ResponseEntity.notFound().build();
+        streamService.link(token, stream, linkTo);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @RequestMapping(path = "/stream/{id}", method = RequestMethod.GET)

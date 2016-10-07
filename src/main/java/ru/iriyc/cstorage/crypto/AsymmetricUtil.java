@@ -95,8 +95,11 @@ public final class AsymmetricUtil {
 
     public static Keys fromByteArray(byte[] publicKey, byte[] privateKey) throws InvalidKeySpecException {
         final PrivateKey pk = FACTORY.generatePrivate(new PKCS8EncodedKeySpec(privateKey));
-        final PublicKey certificate = FACTORY.generatePublic(new X509EncodedKeySpec(publicKey));
-        return new Keys(pk, certificate);
+        return new Keys(pk, publicKeyByteArray(publicKey));
+    }
+
+    public static PublicKey publicKeyByteArray(byte[] publicKey) throws InvalidKeySpecException {
+        return FACTORY.generatePublic(new X509EncodedKeySpec(publicKey));
     }
 
     public static final class Keys {

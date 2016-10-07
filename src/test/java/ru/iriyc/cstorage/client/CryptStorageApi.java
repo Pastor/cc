@@ -9,5 +9,5 @@ public interface CryptStorageApi {
 
     UserProfileApi getProfileApi(String token);
 
-    CollaborationApi getCollaboration(String token);
+    CollaboratorApi getCollaboration(String token);
 }

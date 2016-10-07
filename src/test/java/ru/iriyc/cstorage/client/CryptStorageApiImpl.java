@@ -29,7 +29,7 @@ final class CryptStorageApiImpl implements CryptStorageApi {
     }
 
     @Override
-    public CollaborationApi getCollaboration(String token) {
-        return new CollaborationApiImpl(url, token);
+    public CollaboratorApi getCollaboration(String token) {
+        return new CollaboratorApiImpl(url, token);
     }
 }

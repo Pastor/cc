@@ -45,10 +45,17 @@ final class StreamApiImpl extends RestApiController<StreamApiImpl.RestStreamApi>
         download(api.download(id), stream);
     }
 
+    @Override
+    public void link(long id, long idUser) throws IOException {
+        call(api.link(id, idUser));
+    }
+
     interface RestStreamApi {
         @PUT("/rest/api/v1/stream")
         Call<Stream> create(@Body Stream stream);
 
+        @PUT("/rest/api/v1/stream/{id}/link/{idUser}")
+        Call<Void> link(@Path("id") long id, @Path("idUser") long idUser);
 
         @POST("/rest/api/v1/stream/{id}")
         @Headers("Content-Type: application/octet-stream")

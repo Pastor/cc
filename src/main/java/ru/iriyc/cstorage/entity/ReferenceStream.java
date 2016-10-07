@@ -1,6 +1,9 @@
 package ru.iriyc.cstorage.entity;
 
-import lombok.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.Proxy;
 
 import javax.persistence.*;
@@ -23,7 +26,7 @@ public final class ReferenceStream extends AbstractEntity {
     @Column(name = "secret_key", nullable = false, length = 10485760)
     private String secretKey;
 
-    @Column(name = "owner", nullable = false, length = 10485760)
+    @ManyToOne(targetEntity = User.class, optional = false)
     private User owner;
 }
 

@@ -10,8 +10,8 @@ import javax.persistence.*;
 import java.util.Set;
 
 @Data
-@EqualsAndHashCode(callSuper = true, exclude = {"streams", "tokens", "collaborations"})
-@ToString(exclude = {"streams", "tokens", "collaborations"})
+@EqualsAndHashCode(callSuper = true, exclude = {"streams", "tokens", "collaborators"})
+@ToString(exclude = {"streams", "tokens", "collaborators"})
 @NoArgsConstructor
 @Proxy(lazy = false)
 @Entity(name = "User")
@@ -21,8 +21,8 @@ public final class User extends AbstractEntity {
     @Column(name = "username", nullable = false)
     private String username;
 
-    @Column(name = "certificate", nullable = false, length = 10485760)
-    private String certificate;
+    @Column(name = "public_key", nullable = false, length = 10485760)
+    private String publicKey;
 
     @JsonIgnore
     @Column(name = "private_key", nullable = false, length = 10485760)
@@ -45,12 +45,13 @@ public final class User extends AbstractEntity {
     @OneToOne(fetch = FetchType.LAZY, optional = false, mappedBy = "user")
     private UserProfile userProfile;
 
-    @JsonProperty("collaboration")
+    @JsonIgnore
     @Setter(AccessLevel.NONE)
-    @OneToOne(fetch = FetchType.LAZY, optional = false, mappedBy = "owner")
-    private Collaboration collaboration;
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "owner", cascade = CascadeType.DETACH)
+    private Set<Collaborator> ownerCollaborators;
 
+    @JsonIgnore
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.DETACH)
     @OrderBy("id")
-    private Set<Collaboration> collaborations;
+    private Set<Collaborator> collaborators;
 }

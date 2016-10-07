@@ -4,6 +4,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.io.BaseEncoding;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.iriyc.cstorage.crypto.AsymmetricUtil;
@@ -11,7 +12,9 @@ import ru.iriyc.cstorage.entity.User;
 import ru.iriyc.cstorage.repository.UserRepository;
 import ru.iriyc.cstorage.service.api.TokenService;
 
+import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 import java.util.concurrent.TimeUnit;
 
 @Service("tokenService.v1")
@@ -33,7 +36,7 @@ final class TokenServiceImpl implements TokenService {
     private final UserRepository userRepository;
 
     @Autowired
-    public TokenServiceImpl(UserRepository userRepository) {
+    public TokenServiceImpl(@Qualifier("userRepository.v1") UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
@@ -72,5 +75,10 @@ final class TokenServiceImpl implements TokenService {
         if (keys == null)
             throw new RuntimeException("Ошибка получения ключевой пары по токену");
         return keys;
+    }
+
+    @Override
+    public PublicKey getKeys(User user) throws InvalidKeySpecException {
+        return AsymmetricUtil.publicKeyByteArray(BaseEncoding.base64().decode(user.getPublicKey()));
     }
 }

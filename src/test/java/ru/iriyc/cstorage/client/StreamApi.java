@@ -13,4 +13,6 @@ public interface StreamApi {
     void upload(long id, InputStream stream) throws IOException;
 
     void download(long id, OutputStream stream) throws IOException;
+
+    void link(long id, long idUser) throws IOException;
 }

@@ -54,7 +54,7 @@ public final class UserUtilTest {
     public void registerUser() throws Exception {
         final User user = UserUtil.registerUser(repository, "user3@mail.ru", "password2");
         assertNotNull(user);
-        assertNotNull(user.getCertificate());
+        assertNotNull(user.getPublicKey());
         assertNotNull(user.getPrivateKey());
         assertEquals(user.getUsername(), "user3@mail.ru");
     }

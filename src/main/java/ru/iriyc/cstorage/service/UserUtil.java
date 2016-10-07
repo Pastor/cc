@@ -31,7 +31,7 @@ public final class UserUtil {
             throw new IllegalArgumentException("Пароль пользователя не может быть пустым");
         final AsymmetricUtil.Keys keys = AsymmetricUtil.generateKeys();
         final User registeredUser = new User();
-        registeredUser.setCertificate(BaseEncoding.base64().encode(keys.publicKey.getEncoded()));
+        registeredUser.setPublicKey(BaseEncoding.base64().encode(keys.publicKey.getEncoded()));
         final byte[] paddingPassword = password(password);
         final byte[] encryptedPrivateKey = SymmetricUtil.encrypt(paddingPassword, keys.privateKey.getEncoded());
         registeredUser.setPrivateKey(BaseEncoding.base64().encode(encryptedPrivateKey));
@@ -47,7 +47,7 @@ public final class UserUtil {
         if (password == null || password.isEmpty())
             throw new IllegalArgumentException("Пароль пользователя не может быть пустым");
         final byte[] paddingPassword = password(password);
-        final byte[] publicKey = BaseEncoding.base64().decode(user.getCertificate());
+        final byte[] publicKey = BaseEncoding.base64().decode(user.getPublicKey());
         final byte[] encryptedPrivateKey = BaseEncoding.base64().decode(user.getPrivateKey());
         try {
             final byte[] decryptedPrivateKey = SymmetricUtil.decrypt(paddingPassword, encryptedPrivateKey);

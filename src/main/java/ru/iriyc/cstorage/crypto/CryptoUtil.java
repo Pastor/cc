@@ -1,5 +1,7 @@
 package ru.iriyc.cstorage.crypto;
 
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import org.bouncycastle.crypto.CryptoException;
 
 import javax.crypto.BadPaddingException;
@@ -16,8 +18,9 @@ import java.security.NoSuchAlgorithmException;
 public final class CryptoUtil {
     private static final int BUFFER_SIZE = 1024;
 
-    static void doCrypto(int cipherMode, Key key, String transformation, InputStream input, OutputStream output)
+    static String doCrypto(int cipherMode, Key key, String transformation, InputStream input, OutputStream output)
             throws CryptoException {
+        final Hasher hasher = Hashing.sha256().newHasher();
         try {
             final byte[] buffer = new byte[BUFFER_SIZE];
             Cipher cipher = Cipher.getInstance(transformation);
@@ -27,6 +30,7 @@ public final class CryptoUtil {
             while ((readed = input.read(buffer)) > 0) {
                 final byte[] update = cipher.update(buffer, 0, readed);
                 output.write(update);
+                hasher.putBytes(buffer, 0, readed);
             }
             final byte[] result = cipher.doFinal();
             output.write(result);
@@ -35,5 +39,6 @@ public final class CryptoUtil {
                 | IllegalBlockSizeException | IOException ex) {
             throw new CryptoException("Error encrypting/decrypting", ex);
         }
+        return hasher.hash().toString().toUpperCase();
     }
 }

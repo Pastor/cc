@@ -9,7 +9,6 @@ import ru.iriyc.cstorage.entity.User;
 import ru.iriyc.cstorage.entity.UserProfile;
 
 @Repository("userProfileRepository.v1")
-@Service
 public interface UserProfileRepository extends PagingAndSortingRepository<UserProfile, Long> {
     @Query("SELECT profile FROM UserProfile profile WHERE profile.user = :user")
     UserProfile find(@Param("user") User user);
