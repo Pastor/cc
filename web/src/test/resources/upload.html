@@ -1,0 +1,1075 @@
+<!DOCTYPE html><html
+lang="en-US" xmlns:og="http://ogp.me/ns#" xmlns:fb="http://ogp.me/ns/fb#" class=""><head><link
+rel="stylesheet" type="text/css" href="http://www.developerscrappad.com/wp-content/cache/minify/000000/fY5RDoJADEQvBFROZGopsLrbmm0T5fYuskY-CB9NppnX6fRAGReV1hZxfLdzmOZYxjkDmUEKUomuyKY_wX3mxAYjcxzYwiQ7eXo4qnj5pIKkzQUSOg66vV-tFl9smvhb4G-bL5FL7qjqeItc-W3pSDPXxseAOcqAUeWH3dmfSA-4BiGYWDgHUrFjuePX1Ko_.css" media="all" /><title>How To Perform HTTP Basic Access Authentication With JAX-RS REST Client &#8212; Developers&#039; ScrapPad</title><meta
+name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" /><meta
+http-equiv="Content-Type" content="text/html; charset=UTF-8" /><meta
+name="robots" content="all, index, follow" /><link
+rel="profile" href="http://gmpg.org/xfn/11" /><link
+rel="shortcut icon" href="http://www.developerscrappad.com/wp-content/uploads/2015/06/favicon.ico" /><link
+href="//fonts.googleapis.com/css?family=Montserrat:400,400italic,700,700italic&#038;subset=latin,greek-ext,cyrillic,latin-ext,greek,cyrillic-ext,vietnamese" rel="stylesheet" type="text/css" /><link
+href="//fonts.googleapis.com/css?family=Open+Sans:400,400italic,700,700italic&#038;subset=latin,greek-ext,cyrillic,latin-ext,greek,cyrillic-ext,vietnamese" rel="stylesheet" type="text/css" /><link
+href="//fonts.googleapis.com/css?family=Libre+Baskerville:400,400italic,700,700italic&#038;subset=latin,greek-ext,cyrillic,latin-ext,greek,cyrillic-ext,vietnamese" rel="stylesheet" type="text/css" /><link
+rel="pingback" href="http://www.developerscrappad.com/xmlrpc.php" /><script type="text/javascript">theme_directory_uri='http://www.developerscrappad.com/wp-content/themes/matador';</script><link
+rel="alternate" type="application/rss+xml" title="Developers&#039; ScrapPad &raquo; Feed" href="http://feeds.feedburner.com/developerscrappad" /><link
+rel="alternate" type="application/rss+xml" title="Developers&#039; ScrapPad &raquo; Comments Feed" href="http://www.developerscrappad.com/comments/feed/" /><script type="text/javascript">/*<![CDATA[*/window._wpemojiSettings={"baseUrl":"https:\/\/s.w.org\/images\/core\/emoji\/72x72\/","ext":".png","source":{"concatemoji":"http:\/\/www.developerscrappad.com\/wp-includes\/js\/wp-emoji-release.min.js?ver=4.4.5"}};!function(a,b,c){function d(a){var c,d,e,f=b.createElement("canvas"),g=f.getContext&&f.getContext("2d"),h=String.fromCharCode;return g&&g.fillText?(g.textBaseline="top",g.font="600 32px Arial","flag"===a?(g.fillText(h(55356,56806,55356,56826),0,0),f.toDataURL().length>3e3):"diversity"===a?(g.fillText(h(55356,57221),0,0),c=g.getImageData(16,16,1,1).data,g.fillText(h(55356,57221,55356,57343),0,0),c=g.getImageData(16,16,1,1).data,e=c[0]+","+c[1]+","+c[2]+","+c[3],d!==e):("simple"===a?g.fillText(h(55357,56835),0,0):g.fillText(h(55356,57135),0,0),0!==g.getImageData(16,16,1,1).data[0])):!1}function e(a){var c=b.createElement("script");c.src=a,c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var f,g;c.supports={simple:d("simple"),flag:d("flag"),unicode8:d("unicode8"),diversity:d("diversity")},c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.simple&&c.supports.flag&&c.supports.unicode8&&c.supports.diversity||(g=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",g,!1),a.addEventListener("load",g,!1)):(a.attachEvent("onload",g),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),f=c.source||{},f.concatemoji?e(f.concatemoji):f.wpemoji&&f.twemoji&&(e(f.twemoji),e(f.wpemoji)))}(window,document,window._wpemojiSettings);/*]]>*/</script><style type="text/css">img.wp-smiley,img.emoji{display:inline !important;border:none !important;box-shadow:none !important;height:1em !important;width:1em !important;margin:0
+.07em !important;vertical-align:-0.1em !important;background:none !important;padding:0
+!important}</style><link
+rel='stylesheet' id='theme-options-css-css'  href='http://www.developerscrappad.com?theme-options=css&#038;ver=1.3.0-1434714507' type='text/css' media='all' /><script type='text/javascript'>var ts_ajax_vars={"ajaxurl":"http:\/\/www.developerscrappad.com\/wp-admin\/admin-ajax.php","ajax_nonce":"c1da9f25d2"};</script><script type="text/javascript" src="http://www.developerscrappad.com/wp-content/cache/minify/000000/M9bPKixNLarUMYYydHMz04sSS1L1cjPzdAz1s1JLChKTs_Vz81NKc1KL9YtSc4CSKboF-cUlaDwA.js"></script><script type='text/javascript'>var CrayonSyntaxSettings={"version":"_2.7.2_beta","is_admin":"0","ajaxurl":"http:\/\/www.developerscrappad.com\/wp-admin\/admin-ajax.php","prefix":"crayon-","setting":"crayon-setting","selected":"crayon-setting-selected","changed":"crayon-setting-changed","special":"crayon-setting-special","orig_value":"data-orig-value","debug":""};var CrayonSyntaxStrings={"copy":"Press %s to Copy, %s to Paste","minimize":"Click To Expand Code"};</script><script type="text/javascript" src="http://www.developerscrappad.com/wp-content/cache/minify/000000/M9RPLkqszM_TLa7MK0ms0M3ITM_IAeKS1CL9rGL93Mw8qAI9IFPHUD8tP78kMSknFSQJY-OTKs4vKsEnX5CYnpmXWAI2AwA.js"></script><link
+rel='https://api.w.org/' href='http://www.developerscrappad.com/wp-json/' /><link
+rel="EditURI" type="application/rsd+xml" title="RSD" href="http://www.developerscrappad.com/xmlrpc.php?rsd" /><link
+rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://www.developerscrappad.com/wp-includes/wlwmanifest.xml" /><link
+rel='prev' title='How To Stream/Serialize JPA Result As JAX-RS Response For Large Data' href='http://www.developerscrappad.com/2340/java/java-ee/rest-jax-rs/how-to-streamserialize-jpa-result-as-jax-rs-response-for-large-data/' /><meta
+name="generator" content="WordPress 4.4.5" /><link
+rel="canonical" href="http://www.developerscrappad.com/2364/java/java-ee/rest-jax-rs/how-to-perform-http-basic-access-authentication-with-jax-rs-rest-client/" /><link
+rel='shortlink' href='http://wp.me/p7998S-C8' /><link
+rel="alternate" type="application/json+oembed" href="http://www.developerscrappad.com/wp-json/oembed/1.0/embed?url=http%3A%2F%2Fwww.developerscrappad.com%2F2364%2Fjava%2Fjava-ee%2Frest-jax-rs%2Fhow-to-perform-http-basic-access-authentication-with-jax-rs-rest-client%2F" /><link
+rel="alternate" type="text/xml+oembed" href="http://www.developerscrappad.com/wp-json/oembed/1.0/embed?url=http%3A%2F%2Fwww.developerscrappad.com%2F2364%2Fjava%2Fjava-ee%2Frest-jax-rs%2Fhow-to-perform-http-basic-access-authentication-with-jax-rs-rest-client%2F&#038;format=xml" /><meta
+name="description" content="This is a short article on how to make a HTTP Request with Basic Authentication through a generic JAX-RS REST Client." /><link
+rel='dns-prefetch' href='//i0.wp.com'><link
+rel='dns-prefetch' href='//i1.wp.com'><link
+rel='dns-prefetch' href='//i2.wp.com'><style type='text/css'>img#wpstats{display:none}</style><script type="text/javascript">/*<![CDATA[*/var $FOOTABLE=$FOOTABLE||{};(function($FOOTABLE,$,undefined){jQuery.fn.attrAppendWithComma=function(a,b){var c;return this.each(function(){c=$(this),void 0!==c.attr(a)&&""!=c.attr(a)?c.attr(a,c.attr(a)+","+b):c.attr(a,b)})};jQuery.fn.footableAttr=function(a,b){return this.each(function(){var c=$(this);c.data("auto-columns")!==!1&&(c.find("thead th:gt("+a+")").attrAppendWithComma("data-hide","tablet"),c.find("thead th:gt("+b+")").attrAppendWithComma("data-hide","phone"))})},jQuery.fn.footableFilter=function(a){return this.each(function(){var b=$(this);b.data("filter")||b.data("filter")===!1||b.data("filter-text-only","true").before('<div class="footable-filter-container"><input placeholder="'+a+'" style="float:right" type="text" class="footable-filter" /></div>')})},jQuery.fn.footablePager=function(){return this.each(function(){var a=$(this);if(a.data("page")!==!1){var b=$('<tfoot class="hide-if-no-paging"><tr><td><div class="pagination pagination-centered"></div></td></tr></tfoot>');b.find("td").attr("colspan",a.find("thead th").length),a.find("tbody:last").after(b)}})};$FOOTABLE.init=function(){$(".footable").footableAttr(3,1).footablePager().footable({breakpoints:{phone:320,tablet:768}});};}($FOOTABLE,jQuery));jQuery(function($){$FOOTABLE.init();});/*]]>*/</script><meta
+property="og:locale" content="en_US"/><meta
+property="og:site_name" content="Developers&#039; ScrapPad"/><meta
+property="og:title" content="How To Perform HTTP Basic Access Authentication With JAX-RS REST Client"/><meta
+itemprop="name" content="How To Perform HTTP Basic Access Authentication With JAX-RS REST Client"/><meta
+property="og:url" content="http://www.developerscrappad.com/2364/java/java-ee/rest-jax-rs/how-to-perform-http-basic-access-authentication-with-jax-rs-rest-client/"/><meta
+property="og:type" content="article"/><meta
+property="article:published_time" content="2015-06-30T19:16:12+00:00"/><meta
+property="article:modified_time" content="2015-07-05T15:18:47+00:00" /><meta
+property="og:updated_time" content="2015-07-05T15:18:47+00:00" /><meta
+property="article:section" content="REST (JAX-RS)"/><meta
+property="article:section" content="Security"/><meta
+property="og:description" content="I was performing evaluation on various SaaS API based Email service provider and had come across some of them which requires HTTP Basic Authentication when accessing their APIs. So, I though its a good reason for me to document this anyone who requires needs to perform Basic Authentication through a"/><meta
+itemprop="description" content="I was performing evaluation on various SaaS API based Email service provider and had come across some of them which requires HTTP Basic Authentication when accessing their APIs. So, I though its a good reason for me to document this anyone who requires needs to perform Basic Authentication through a"/><meta
+property="og:image" content="http://www.developerscrappad.com/wp-content/uploads/2015/06/1260843_93164844.jpg"/><meta
+itemprop="image" content="http://www.developerscrappad.com/wp-content/uploads/2015/06/1260843_93164844.jpg"/></head><body
+class="single single-post postid-2364 single-format-standard ts-responsive ts-partial-top-bar ts-full-top-bar ts-is-single ts-back-to-top ts-back-to-top-mobile ts-has-sticky-nav wall-to-wall bg_px_by_Gr3g ts-sidebar-beside-content no-bg-image smooth-page-scroll woocommerce-plus-minus-buttons woocommerce-less-than-2dot3 ts-logo-centered ts-main-nav-standard has-footer-widgets"><div
+id="wrap"><div
+class="wrap-inner"><div
+id="top-wrap" class=""><div
+id="top-container" class="top-default"><div
+id="top" class="ts-top"><div
+id="top-bar-wrap" class="three-part"><div
+id="top-bar" class="mimic-small container clearfix"><div
+class="left-side side header-social-icons"><p
+class="social social-fa-icons"><a
+href="https://www.facebook.com/pages/A-Developers-ScrapPad/261954323844612" class="icon-style" target="_blank"><i
+class="fa fa-facebook"></i></a><a
+href="https://twitter.com/#!/devscrappad" class="icon-style" target="_blank"><i
+class="fa fa-twitter"></i></a><a
+href="https://plus.google.com/109977026413361320722" class="icon-style" target="_blank"><i
+class="fa fa-google-plus"></i></a><a
+href="http://feeds.feedburner.com/developerscrappad" class="icon-style" target="_blank"><i
+class="fa fa-rss"></i></a></p></div><div
+class="middle-area">&nbsp;</div><div
+class="text-right right-side side"><div
+class="top-stuff-link-item ts-hover-menu-wrap"><div
+class="search-pocket"><form
+role="search" method="get" class="ts-searchform" action="http://www.developerscrappad.com/" > <label
+class="assistive-text">Search for:</label> <input
+type="text" placeholder="Search..." value="" name="s" /> <button
+type="submit" class="fa fa-search"></button></form></div></div></div></div></div><div
+id="logo-nav-wrap"><div
+id="logo-tagline-wrap" class="container logo-tagline-wrap"><div
+id="logo" class="main-logo text-center"><div
+class="logo-text"><a
+href="http://www.developerscrappad.com" title="" class="text-logo">${Developers\' ScrapPad}</a></div></div></div><div
+id="nav" class="main-nav-wrap ts-main-nav-wrap container"><div
+id="ts-main-nav-inner-wrap"><div
+id="main-nav-mobile" class="mobile-nav"><a
+id="ts-top-mobile-menu" class="mobile-menu"><strong
+class="mobile-menu-icon"></strong><span
+class="mobile-menu-sep"></span>Menu</a></div><div
+id="main-nav" class="main-nav normal"><ul
+class="sf-menu clearfix"><li
+id="menu-item-2180" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-2180"><a
+href="//www.developerscrappad.com"><span>Home</span></a></li><li
+id="menu-item-108" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor menu-item-has-children menu-item-108"><a
+href="http://www.developerscrappad.com/category/java/"><span>Java</span></a><ul
+class="sub-menu"><li
+id="menu-item-2083" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-2083"><a
+href="http://www.developerscrappad.com/category/java/java-cloud-hosting/"><span>Java Cloud Hosting</span></a></li><li
+id="menu-item-109" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor menu-item-has-children menu-item-109"><a
+href="http://www.developerscrappad.com/category/java/java-ee/"><span>Java EE</span></a><ul
+class="sub-menu"><li
+id="menu-item-1865" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1865"><a
+href="http://www.developerscrappad.com/category/java/java-ee/batch/"><span>Batch</span></a></li><li
+id="menu-item-1658" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1658"><a
+href="http://www.developerscrappad.com/category/java/java-ee/glassfish/"><span>Glassfish</span></a></li><li
+id="menu-item-1256" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1256"><a
+href="http://www.developerscrappad.com/category/java/java-ee/jboss/"><span>JBoss</span></a></li><li
+id="menu-item-1257" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1257"><a
+href="http://www.developerscrappad.com/category/java/java-ee/maven/"><span>Maven</span></a></li><li
+id="menu-item-1866" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-1866"><a
+href="http://www.developerscrappad.com/category/java/java-ee/rest-jax-rs/"><span>REST (JAX-RS)</span></a></li><li
+id="menu-item-1582" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1582"><a
+href="http://www.developerscrappad.com/category/java/java-ee/weblogic/"><span>Weblogic</span></a></li></ul></li><li
+id="menu-item-1259" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1259"><a
+href="http://www.developerscrappad.com/category/java/ldap/"><span>LDAP</span></a></li></ul></li><li
+id="menu-item-2185" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-has-children menu-item-2185"><a
+href="http://www.developerscrappad.com/category/security/"><span>Security</span></a><ul
+class="sub-menu"><li
+id="menu-item-2186" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-2186"><a
+href="http://www.developerscrappad.com/category/security/ssl-security/"><span>SSL</span></a></li></ul></li><li
+id="menu-item-1563" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-1563"><a
+href="http://www.developerscrappad.com/category/php/"><span>PHP</span></a><ul
+class="sub-menu"><li
+id="menu-item-1564" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1564"><a
+href="http://www.developerscrappad.com/category/php/doctrine/"><span>Doctrine</span></a></li></ul></li><li
+id="menu-item-195" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-195"><a
+href="http://www.developerscrappad.com/category/database/"><span>Database</span></a><ul
+class="sub-menu"><li
+id="menu-item-1772" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-1772"><a
+href="http://www.developerscrappad.com/category/database/nosql/"><span>NoSQL</span></a><ul
+class="sub-menu"><li
+id="menu-item-1773" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-1773"><a
+href="http://www.developerscrappad.com/category/database/nosql/cassandra/"><span>Cassandra</span></a></li></ul></li><li
+id="menu-item-388" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-388"><a
+href="http://www.developerscrappad.com/category/database/oracle/"><span>Oracle</span></a></li><li
+id="menu-item-196" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-196"><a
+href="http://www.developerscrappad.com/category/database/mysql/"><span>MySQL</span></a></li></ul></li><li
+id="menu-item-207" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-207"><a
+href="http://www.developerscrappad.com/category/web/"><span>Web</span></a><ul
+class="sub-menu"><li
+id="menu-item-208" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-208"><a
+href="http://www.developerscrappad.com/category/web/html-css-js-ajax/"><span>HTML, CSS, Javascript, Ajax</span></a></li></ul></li></ul></div></div></div></div></div></div></div><div
+id="title-bar-wrap" class="title-bar-layout-normal title-bar-page  " style=""><div
+id="title-bar" class="container"><div
+id="title-bar-text" class="container"><div
+class="row"><div
+class="span8"><h1 class="entry-title"><a
+href="http://www.developerscrappad.com/2364/java/java-ee/rest-jax-rs/how-to-perform-http-basic-access-authentication-with-jax-rs-rest-client/">How To Perform HTTP Basic Access Authentication With JAX-RS REST Client</a></h1><div
+class="meta small-size subtle-text-color"><span
+class="title-bar-cats uppercase"><a
+href="http://www.developerscrappad.com/category/java/java-ee/rest-jax-rs/" rel="category tag">REST (JAX-RS)</a>, <a
+href="http://www.developerscrappad.com/category/security/" rel="category tag">Security</a></span> <span
+class="sep sep-0">&nbsp;/&nbsp;</span> <time
+class="published" datetime="2015-06-30 19:16:12">June 30, 2015</time></div></div><div
+class="span4 breadcrumbs-wrap"><div
+class="breadcrumbs small"><span
+typeof="v:Breadcrumb"><a
+rel="v:url" property="v:title" href="http://www.developerscrappad.com/">Home</a></span> <span
+class="delimiter">/</span> <span
+typeof="v:Breadcrumb"><a
+rel="v:url" property="v:title" href="http://www.developerscrappad.com/category/java/">Java</a></span> <span
+class="delimiter">/</span> <span
+typeof="v:Breadcrumb"><a
+rel="v:url" property="v:title" href="http://www.developerscrappad.com/category/java/java-ee/">Java EE</a></span> <span
+class="delimiter">/</span> <span
+typeof="v:Breadcrumb"><a
+rel="v:url" property="v:title" href="http://www.developerscrappad.com/category/java/java-ee/rest-jax-rs/">REST (JAX-RS)</a></span></div></div></div></div></div></div><div
+id="main-container-wrap" class=""><div
+id="main-container" class="container clearfix"><div
+id="main" class="has-sidebar has-sidebar-right clearfix"><div
+class="entry single-entry clearfix"><div
+id="ts-post-content-sidebar-wrap" class="clearfix"><div
+id="ts-post-wrap" class=""><div
+id="ts-post" class="post ts-post-section clearfix post-2364 type-post status-publish format-standard has-post-thumbnail hentry category-rest-jax-rs category-security tag-http-basic-authentication tag-java-ee tag-jax-rs-2-0"><div
+id="ts-post-the-content-wrap"><div
+id="ts-post-comments-share-wrap" class="clearfix sharing-pos-top"> <a
+href="http://www.developerscrappad.com/2364/java/java-ee/rest-jax-rs/how-to-perform-http-basic-access-authentication-with-jax-rs-rest-client/#comments" class="to-comments-link small-size smoothscroll" id="ts-moon-comment-bubble"><strong><span
+class="disqus-comment-count" data-disqus-url="http://www.developerscrappad.com/2364/java/java-ee/rest-jax-rs/how-to-perform-http-basic-access-authentication-with-jax-rs-rest-client/">0 Comments</span></strong></a><div
+id="page-share" class="not-pulled small"><div
+class="share-options"><a
+href="https://www.facebook.com/sharer.php?u=http%3A%2F%2Fwww.developerscrappad.com%2F2364%2Fjava%2Fjava-ee%2Frest-jax-rs%2Fhow-to-perform-http-basic-access-authentication-with-jax-rs-rest-client%2F&#038;t=How+To+Perform+HTTP+Basic+Access+Authentication+With+JAX-RS+REST+Client" class="hover-facebook-color share-pop" title="Facebook" rel="nofollow"><i
+class="fa fa-facebook-square facebook-color"></i><span>Facebook</span></a><a
+href="https://twitter.com/home?status=How+To+Perform+HTTP+Basic+Access+Authentication+With+JAX-RS+REST+Client+http%3A%2F%2Fwww.developerscrappad.com%2F2364%2Fjava%2Fjava-ee%2Frest-jax-rs%2Fhow-to-perform-http-basic-access-authentication-with-jax-rs-rest-client%2F" class="hover-twitter-color share-pop" title="Twitter" rel="nofollow"><i
+class="fa fa-twitter-square twitter-color"></i><span>Twitter</span></a><a
+href="https://plus.google.com/share?url=http%3A%2F%2Fwww.developerscrappad.com%2F2364%2Fjava%2Fjava-ee%2Frest-jax-rs%2Fhow-to-perform-http-basic-access-authentication-with-jax-rs-rest-client%2F&#038;title=How+To+Perform+HTTP+Basic+Access+Authentication+With+JAX-RS+REST+Client" class="hover-gplus-color share-pop" title="Google+" rel="nofollow"><i
+class="fa fa-google-plus-square gplus-color"></i><span>Google+</span></a><a
+href="http://linkedin.com/shareArticle?mini=true&#038;url=http%3A%2F%2Fwww.developerscrappad.com%2F2364%2Fjava%2Fjava-ee%2Frest-jax-rs%2Fhow-to-perform-http-basic-access-authentication-with-jax-rs-rest-client%2F&#038;title=How+To+Perform+HTTP+Basic+Access+Authentication+With+JAX-RS+REST+Client" class="hover-linkedin-color share-pop" title="LinkedIn" rel="nofollow"><i
+class="fa fa-linkedin-square linkedin-color"></i><span>LinkedIn</span></a><a
+href="http://www.reddit.com/submit?url=http%3A%2F%2Fwww.developerscrappad.com%2F2364%2Fjava%2Fjava-ee%2Frest-jax-rs%2Fhow-to-perform-http-basic-access-authentication-with-jax-rs-rest-client%2F&#038;title=How+To+Perform+HTTP+Basic+Access+Authentication+With+JAX-RS+REST+Client" class="hover-reddit-color share-pop" title="Reddit" rel="nofollow"><i
+class="fa fa-reddit-square reddit-color"></i><span>Reddit</span></a><a
+href="http://www.digg.com/submit?url=http%3A%2F%2Fwww.developerscrappad.com%2F2364%2Fjava%2Fjava-ee%2Frest-jax-rs%2Fhow-to-perform-http-basic-access-authentication-with-jax-rs-rest-client%2F" class="hover-digg-color share-pop" title="digg" rel="nofollow"><i
+class="fa fa-digg digg-color"></i><span>digg</span></a><a
+href="http://www.stumbleupon.com/submit?url=http%3A%2F%2Fwww.developerscrappad.com%2F2364%2Fjava%2Fjava-ee%2Frest-jax-rs%2Fhow-to-perform-http-basic-access-authentication-with-jax-rs-rest-client%2F" class="hover-stumbleupon-color share-pop" title="StumbleUpon" rel="nofollow"><i
+class="fa fa-stumbleupon stumbleupon-color"></i><span>StumbleUpon</span></a><a
+href="mailto:?subject=How+To+Perform+HTTP+Basic+Access+Authentication+With+JAX-RS+REST+Client&#038;body=http%3A%2F%2Fwww.developerscrappad.com%2F2364%2Fjava%2Fjava-ee%2Frest-jax-rs%2Fhow-to-perform-http-basic-access-authentication-with-jax-rs-rest-client%2F" class="email" title="Email" rel="nofollow"><i
+class="fa fa-envelope"></i><span>Email</span></a><a
+href="javascript:print()" class="print" title="Print"><i
+class="fa fa-print"></i><span>Print</span></a></div></div></div><div
+id="ts-post-the-content" class="entry-content"><div
+style="float: left; margin-right: 10px; margin-bottom: 10px; " class="advads-300x250" id="advads-1670254424"><script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script><ins
+class="adsbygoogle" style="display:inline-block;width:300px;height:250px;" data-ad-client="ca-pub-5481194528546890" data-ad-slot="4576840707"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});</script></div><p>I was performing evaluation on various SaaS API based Email service provider and had come across some of them which requires HTTP Basic Authentication when accessing their APIs. So, I though its a good reason for me to document this anyone who requires needs to perform Basic Authentication through a generic JAX-RS REST Client or any other HTTP Client. Some HTTP Client already has BasicAuthentication filters while others don’t. So, it is good to just begin with a simple understanding of the authentication mechanism works and you can then reuse this information provided here for any other implementation.<br><span
+id="more-2364"></span></p><div
+class="advads-clearfix" id="advads-1305096132"><br></div><br
+style="clear: both; display: block; float: none;"><h2>The Basics of HTTP Basic Access Authentication</h2><p>In simple words, Basic Authentication mechanism is an authentication mechanism on the server side which requires just the username and password, but in a very specific HTTP header format to be sent along with the HTTP request, which is shown just right below.</p><h3>HTTP Header Format for Basic Authentication</h3><pre crayon="false">Authorization: Basic &lt;username:password in base64 encoding&gt;
+</pre><p>“<em><strong>Authorization</strong></em>” is the header name, and the value should be something like “<em>Basic YXBpOmtleS03Y2IzODY4ZWI5MmM2ZzFlZmY3NzY1YWExZDhmNmE0OQ==</em>“, yes, the word “<strong><em>Basic</em></strong>” must precede the Base64 encoded username:password with the ‘<strong>:</strong>‘ as separator.</p><h2>Building the Authorization Header Name and Value (Pre-Java 8)</h2><p>To build the header value with Base64 encoding tools, here’s how you can do it with Java SE 7 (with the help of <em>javax.xml.bind.DatatypeConverter</em>):</p><div
+id="crayon-582f059ac60eb447689650" class="crayon-syntax crayon-theme-feeldesign crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; font-size: 14px !important; line-height: 16px !important;"><div
+class="crayon-toolbar" data-settings=" mouseover overlay hide delay" style="font-size: 14px !important;height: 21px !important; line-height: 21px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 14px !important;height: 21px !important; line-height: 21px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Java</span></div></div><div
+class="crayon-info" style="min-height: 19.6px !important; line-height: 19.6px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="dblclick" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 14px !important; line-height: 16px !important;">
+String username = "myusername";
+String password = "myPassword";
+        
+String usernameAndPassword = username + ":" + password;
+String authorizationHeaderName = "Authorization";
+String authorizationHeaderValue = "Basic " + javax.xml.bind.DatatypeConverter.printBase64Binary( usernameAndPassword.getBytes() );</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 14px !important; line-height: 16px !important;"><div
+class="crayon-num" data-line="crayon-582f059ac60eb447689650-1">1</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac60eb447689650-2">2</div><div
+class="crayon-num" data-line="crayon-582f059ac60eb447689650-3">3</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac60eb447689650-4">4</div><div
+class="crayon-num" data-line="crayon-582f059ac60eb447689650-5">5</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac60eb447689650-6">6</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 14px !important; line-height: 16px !important; -moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4;"><div
+class="crayon-line" id="crayon-582f059ac60eb447689650-1"><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">username</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"myusername"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac60eb447689650-2"><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">password</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"myPassword"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac60eb447689650-3"><span
+class="crayon-h">        </span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac60eb447689650-4"><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">usernameAndPassword</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-v">username</span><span
+class="crayon-h"> </span><span
+class="crayon-o">+</span><span
+class="crayon-h"> </span><span
+class="crayon-s">":"</span><span
+class="crayon-h"> </span><span
+class="crayon-o">+</span><span
+class="crayon-h"> </span><span
+class="crayon-v">password</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac60eb447689650-5"><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">authorizationHeaderName</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"Authorization"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac60eb447689650-6"><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">authorizationHeaderValue</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"Basic "</span><span
+class="crayon-h"> </span><span
+class="crayon-o">+</span><span
+class="crayon-h"> </span><span
+class="crayon-v">javax</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">xml</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">bind</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">DatatypeConverter</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">printBase64Binary</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-v">usernameAndPassword</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">getBytes</span><span
+class="crayon-sy">(</span><span
+class="crayon-sy">)</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">;</span></div></div></td></tr></table></div></div><p></p><h2>Building the Authorization Header Name and Value (Java 8)</h2><p>To build the header value with Base64 encoding tools, here’s how you can do it with Java SE 8 (with the help of <em>java.util.Base64</em>):</p><div
+id="crayon-582f059ac6101128073311" class="crayon-syntax crayon-theme-feeldesign crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; font-size: 14px !important; line-height: 16px !important;"><div
+class="crayon-toolbar" data-settings=" mouseover overlay hide delay" style="font-size: 14px !important;height: 21px !important; line-height: 21px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 14px !important;height: 21px !important; line-height: 21px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Java</span></div></div><div
+class="crayon-info" style="min-height: 19.6px !important; line-height: 19.6px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="dblclick" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 14px !important; line-height: 16px !important;">
+String username = "myusername";
+String password = "myPassword";
+        
+String usernameAndPassword = username + ":" + password;
+String authorizationHeaderName = "Authorization";
+String authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder().encodeToString( usernameAndPassword.getBytes() );</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 14px !important; line-height: 16px !important;"><div
+class="crayon-num" data-line="crayon-582f059ac6101128073311-1">1</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac6101128073311-2">2</div><div
+class="crayon-num" data-line="crayon-582f059ac6101128073311-3">3</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac6101128073311-4">4</div><div
+class="crayon-num" data-line="crayon-582f059ac6101128073311-5">5</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac6101128073311-6">6</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 14px !important; line-height: 16px !important; -moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4;"><div
+class="crayon-line" id="crayon-582f059ac6101128073311-1"><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">username</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"myusername"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac6101128073311-2"><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">password</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"myPassword"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac6101128073311-3"><span
+class="crayon-h">        </span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac6101128073311-4"><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">usernameAndPassword</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-v">username</span><span
+class="crayon-h"> </span><span
+class="crayon-o">+</span><span
+class="crayon-h"> </span><span
+class="crayon-s">":"</span><span
+class="crayon-h"> </span><span
+class="crayon-o">+</span><span
+class="crayon-h"> </span><span
+class="crayon-v">password</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac6101128073311-5"><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">authorizationHeaderName</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"Authorization"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac6101128073311-6"><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">authorizationHeaderValue</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"Basic "</span><span
+class="crayon-h"> </span><span
+class="crayon-o">+</span><span
+class="crayon-h"> </span><span
+class="crayon-v">java</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">util</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">Base64</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">getEncoder</span><span
+class="crayon-sy">(</span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">encodeToString</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-v">usernameAndPassword</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">getBytes</span><span
+class="crayon-sy">(</span><span
+class="crayon-sy">)</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">;</span></div></div></td></tr></table></div></div><p></p><h2>Making Basic Authentication Request Through JAX-RS REST Client</h2><p>With all the above, Basic Authentication HTTP request could be make through a generic JAX-RS REST client just by appending a HTTP header info into the request. Here’s a complete unit test example of to make things happen.</p><div
+id="crayon-582f059ac610e949804225" class="crayon-syntax crayon-theme-feeldesign crayon-font-monaco crayon-os-pc print-yes notranslate" data-settings=" minimize scroll-mouseover" style=" margin-top: 12px; margin-bottom: 12px; font-size: 14px !important; line-height: 16px !important;"><div
+class="crayon-toolbar" data-settings=" mouseover overlay hide delay" style="font-size: 14px !important;height: 21px !important; line-height: 21px !important;"><span
+class="crayon-title"></span><div
+class="crayon-tools" style="font-size: 14px !important;height: 21px !important; line-height: 21px !important;"><div
+class="crayon-button crayon-nums-button" title="Toggle Line Numbers"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-plain-button" title="Toggle Plain Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-wrap-button" title="Toggle Line Wrap"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-expand-button" title="Expand Code"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-copy-button" title="Copy"><div
+class="crayon-button-icon"></div></div><div
+class="crayon-button crayon-popup-button" title="Open Code In New Window"><div
+class="crayon-button-icon"></div></div><span
+class="crayon-language">Java</span></div></div><div
+class="crayon-info" style="min-height: 19.6px !important; line-height: 19.6px !important;"></div><div
+class="crayon-plain-wrap"><textarea wrap="soft" class="crayon-plain print-no" data-settings="dblclick" readonly style="-moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4; font-size: 14px !important; line-height: 16px !important;">
+import static org.junit.Assert.*;
+
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+
+import org.junit.Test;
+
+public class BasicAuthenticationTest {
+
+    @Test
+    public void testBasicAuthentication() {
+        //Define basic authentication credential values
+        String username = "myusername";
+        String password = "myPassword";
+
+        String usernameAndPassword = username + ":" + password;
+        String authorizationHeaderName = "Authorization";
+        String authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder().encodeToString( usernameAndPassword.getBytes() );
+
+        // Build the form for a post request
+        MultivaluedMap&amp;lt; String, String&amp;gt; formParameters = new MultivaluedHashMap();
+        formParameters.add( "field1", "fieldValue1" );
+        formParameters.add( "field2", "fieldValue2" );
+
+        // Perform a post request
+        String restResource = "https://restserver:8080/app-name/rest-api/";
+        Client client = ClientBuilder.newClient();
+        Response res = client.target( restResource )
+            .path( "login" ) // API Module Path
+            .request( "application/json" ) // Expected response mime type
+            .header( authorizationHeaderName, authorizationHeaderValue ) // The basic authentication header goes here
+            .post( Entity.form( formParameters ) );     // Perform a post with the form values
+
+        assertTrue( res.getStatus() == 200 );
+    }
+}</textarea></div><div
+class="crayon-main" style=""><table
+class="crayon-table"><tr
+class="crayon-row"><td
+class="crayon-nums " data-settings="show"><div
+class="crayon-nums-content" style="font-size: 14px !important; line-height: 16px !important;"><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-1">1</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-2">2</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-3">3</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-4">4</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-5">5</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-6">6</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-7">7</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-8">8</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-9">9</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-10">10</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-11">11</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-12">12</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-13">13</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-14">14</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-15">15</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-16">16</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-17">17</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-18">18</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-19">19</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-20">20</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-21">21</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-22">22</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-23">23</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-24">24</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-25">25</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-26">26</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-27">27</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-28">28</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-29">29</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-30">30</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-31">31</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-32">32</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-33">33</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-34">34</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-35">35</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-36">36</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-37">37</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-38">38</div><div
+class="crayon-num" data-line="crayon-582f059ac610e949804225-39">39</div><div
+class="crayon-num crayon-striped-num" data-line="crayon-582f059ac610e949804225-40">40</div></div></td><td
+class="crayon-code"><div
+class="crayon-pre" style="font-size: 14px !important; line-height: 16px !important; -moz-tab-size:4; -o-tab-size:4; -webkit-tab-size:4; tab-size:4;"><div
+class="crayon-line" id="crayon-582f059ac610e949804225-1"><span
+class="crayon-r">import</span><span
+class="crayon-h"> </span><span
+class="crayon-m">static</span><span
+class="crayon-h"> </span><span
+class="crayon-v">org</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">junit</span><span
+class="crayon-sy">.</span><span
+class="crayon-st">Assert</span><span
+class="crayon-sy">.</span><span
+class="crayon-o">*</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-2"> </div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-3"><span
+class="crayon-r">import</span><span
+class="crayon-h"> </span><span
+class="crayon-v">javax</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">ws</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">rs</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">client</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">Client</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-4"><span
+class="crayon-r">import</span><span
+class="crayon-h"> </span><span
+class="crayon-v">javax</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">ws</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">rs</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">client</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">ClientBuilder</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-5"><span
+class="crayon-r">import</span><span
+class="crayon-h"> </span><span
+class="crayon-v">javax</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">ws</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">rs</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">client</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">Entity</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-6"><span
+class="crayon-r">import</span><span
+class="crayon-h"> </span><span
+class="crayon-v">javax</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">ws</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">rs</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">core</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">MultivaluedHashMap</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-7"><span
+class="crayon-r">import</span><span
+class="crayon-h"> </span><span
+class="crayon-v">javax</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">ws</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">rs</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">core</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">MultivaluedMap</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-8"><span
+class="crayon-r">import</span><span
+class="crayon-h"> </span><span
+class="crayon-v">javax</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">ws</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">rs</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">core</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">Response</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-9"> </div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-10"><span
+class="crayon-r">import</span><span
+class="crayon-h"> </span><span
+class="crayon-v">org</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">junit</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">Test</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-11"> </div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-12"><span
+class="crayon-m">public</span><span
+class="crayon-h"> </span><span
+class="crayon-t">class</span><span
+class="crayon-h"> </span><span
+class="crayon-e">BasicAuthenticationTest</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">{</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-13"> </div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-14"><span
+class="crayon-h">    </span><span
+class="crayon-n">@Test</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-15"><span
+class="crayon-h">    </span><span
+class="crayon-m">public</span><span
+class="crayon-h"> </span><span
+class="crayon-t">void</span><span
+class="crayon-h"> </span><span
+class="crayon-e">testBasicAuthentication</span><span
+class="crayon-sy">(</span><span
+class="crayon-sy">)</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">{</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-16"><span
+class="crayon-h">        </span><span
+class="crayon-c">//Define basic authentication credential values</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-17"><span
+class="crayon-h">        </span><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">username</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"myusername"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-18"><span
+class="crayon-h">        </span><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">password</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"myPassword"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-19"> </div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-20"><span
+class="crayon-h">        </span><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">usernameAndPassword</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-v">username</span><span
+class="crayon-h"> </span><span
+class="crayon-o">+</span><span
+class="crayon-h"> </span><span
+class="crayon-s">":"</span><span
+class="crayon-h"> </span><span
+class="crayon-o">+</span><span
+class="crayon-h"> </span><span
+class="crayon-v">password</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-21"><span
+class="crayon-h">        </span><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">authorizationHeaderName</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"Authorization"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-22"><span
+class="crayon-h">        </span><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">authorizationHeaderValue</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"Basic "</span><span
+class="crayon-h"> </span><span
+class="crayon-o">+</span><span
+class="crayon-h"> </span><span
+class="crayon-v">java</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">util</span><span
+class="crayon-sy">.</span><span
+class="crayon-v">Base64</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">getEncoder</span><span
+class="crayon-sy">(</span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">encodeToString</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-v">usernameAndPassword</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">getBytes</span><span
+class="crayon-sy">(</span><span
+class="crayon-sy">)</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-23"> </div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-24"><span
+class="crayon-h">        </span><span
+class="crayon-c">// Build the form for a post request</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-25"><span
+class="crayon-h">        </span><span
+class="crayon-v">MultivaluedMap</span><span
+class="crayon-o">&amp;</span><span
+class="crayon-v">lt</span><span
+class="crayon-sy">;</span><span
+class="crayon-h"> </span><span
+class="crayon-t">String</span><span
+class="crayon-sy">,</span><span
+class="crayon-h"> </span><span
+class="crayon-t">String</span><span
+class="crayon-o">&amp;</span><span
+class="crayon-v">gt</span><span
+class="crayon-sy">;</span><span
+class="crayon-h"> </span><span
+class="crayon-v">formParameters</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-r">new</span><span
+class="crayon-h"> </span><span
+class="crayon-e">MultivaluedHashMap</span><span
+class="crayon-sy">(</span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-26"><span
+class="crayon-h">        </span><span
+class="crayon-v">formParameters</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">add</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"field1"</span><span
+class="crayon-sy">,</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"fieldValue1"</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-27"><span
+class="crayon-h">        </span><span
+class="crayon-v">formParameters</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">add</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"field2"</span><span
+class="crayon-sy">,</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"fieldValue2"</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-28"> </div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-29"><span
+class="crayon-h">        </span><span
+class="crayon-c">// Perform a post request</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-30"><span
+class="crayon-h">        </span><span
+class="crayon-t">String</span><span
+class="crayon-h"> </span><span
+class="crayon-v">restResource</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"https://restserver:8080/app-name/rest-api/"</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-31"><span
+class="crayon-h">        </span><span
+class="crayon-e">Client </span><span
+class="crayon-v">client</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-v">ClientBuilder</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">newClient</span><span
+class="crayon-sy">(</span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-32"><span
+class="crayon-h">        </span><span
+class="crayon-e">Response </span><span
+class="crayon-v">res</span><span
+class="crayon-h"> </span><span
+class="crayon-o">=</span><span
+class="crayon-h"> </span><span
+class="crayon-v">client</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">target</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-i">restResource</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-33"><span
+class="crayon-h">            </span><span
+class="crayon-sy">.</span><span
+class="crayon-e">path</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"login"</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-h"> </span><span
+class="crayon-c">// API Module Path</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-34"><span
+class="crayon-h">            </span><span
+class="crayon-sy">.</span><span
+class="crayon-e">request</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-s">"application/json"</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-h"> </span><span
+class="crayon-c">// Expected response mime type</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-35"><span
+class="crayon-h">            </span><span
+class="crayon-sy">.</span><span
+class="crayon-e">header</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-v">authorizationHeaderName</span><span
+class="crayon-sy">,</span><span
+class="crayon-h"> </span><span
+class="crayon-i">authorizationHeaderValue</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-h"> </span><span
+class="crayon-c">// The basic authentication header goes here</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-36"><span
+class="crayon-h">            </span><span
+class="crayon-sy">.</span><span
+class="crayon-e">post</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-v">Entity</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">form</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-i">formParameters</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">;</span><span
+class="crayon-h">     </span><span
+class="crayon-c">// Perform a post with the form values</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-37"> </div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-38"><span
+class="crayon-h">        </span><span
+class="crayon-e">assertTrue</span><span
+class="crayon-sy">(</span><span
+class="crayon-h"> </span><span
+class="crayon-v">res</span><span
+class="crayon-sy">.</span><span
+class="crayon-e">getStatus</span><span
+class="crayon-sy">(</span><span
+class="crayon-sy">)</span><span
+class="crayon-h"> </span><span
+class="crayon-o">==</span><span
+class="crayon-h"> </span><span
+class="crayon-cn">200</span><span
+class="crayon-h"> </span><span
+class="crayon-sy">)</span><span
+class="crayon-sy">;</span></div><div
+class="crayon-line" id="crayon-582f059ac610e949804225-39"><span
+class="crayon-h">    </span><span
+class="crayon-sy">}</span></div><div
+class="crayon-line crayon-striped-line" id="crayon-582f059ac610e949804225-40"><span
+class="crayon-sy">}</span></div></div></td></tr></table></div></div><p>That’s all and hope it help.</p><h3>References:</h3><ul><li><a
+href="https://en.wikipedia.org/wiki/Basic_access_authentication" target="_blank" rel="nofollow">Basic Access Authentication</a></li><li><a
+href="http://www.adam-bien.com/roller/abien/entry/base64_encoding_with_jdk_1" target="_blank" rel="nofollow">Base64 Encoding With JDK1.6+ and Java 8</a></li></ul><div
+class="sharedaddy sd-sharing-enabled"><div
+class="robots-nocontent sd-block sd-social sd-social-icon sd-sharing"><h3 class="sd-title">Share this:</h3><div
+class="sd-content"><ul><li
+class="share-twitter"><a
+rel="nofollow" data-shared="sharing-twitter-2364" class="share-twitter sd-button share-icon no-text" href="http://www.developerscrappad.com/2364/java/java-ee/rest-jax-rs/how-to-perform-http-basic-access-authentication-with-jax-rs-rest-client/?share=twitter" target="_blank" title="Click to share on Twitter"><span></span><span
+class="sharing-screen-reader-text">Click to share on Twitter (Opens in new window)</span></a></li><li
+class="share-facebook"><a
+rel="nofollow" data-shared="sharing-facebook-2364" class="share-facebook sd-button share-icon no-text" href="http://www.developerscrappad.com/2364/java/java-ee/rest-jax-rs/how-to-perform-http-basic-access-authentication-with-jax-rs-rest-client/?share=facebook" target="_blank" title="Share on Facebook"><span></span><span
+class="sharing-screen-reader-text">Share on Facebook (Opens in new window)</span></a></li><li
+class="share-google-plus-1"><a
+rel="nofollow" data-shared="sharing-google-2364" class="share-google-plus-1 sd-button share-icon no-text" href="http://www.developerscrappad.com/2364/java/java-ee/rest-jax-rs/how-to-perform-http-basic-access-authentication-with-jax-rs-rest-client/?share=google-plus-1" target="_blank" title="Click to share on Google+"><span></span><span
+class="sharing-screen-reader-text">Click to share on Google+ (Opens in new window)</span></a></li><li
+class="share-end"></ul></div></div></div><div
+id="jp-relatedposts" class="jp-relatedposts"><h3 class="jp-relatedposts-headline"><em>Related</em></h3></div><div
+style="text-align: center; " class="advads-336x280" id="advads-928600685"><script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script><ins
+class="adsbygoogle" style="display:inline-block;width:336px;height:280px;"
+data-ad-client="ca-pub-5481194528546890"
+data-ad-slot="7830190707"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});</script></div><div
+class="post-tags mimic-small clearfix"><a
+href="http://www.developerscrappad.com/tag/http-basic-authentication/" rel="tag">HTTP Basic Authentication</a><a
+href="http://www.developerscrappad.com/tag/java-ee/" rel="tag">Java EE</a><a
+href="http://www.developerscrappad.com/tag/jax-rs-2-0/" rel="tag">JAX-RS 2.0</a></div></div></div><div
+class="ts-about-author-wrap ts-post-section-inner"><div
+class="ts-about-author"><div
+class="author-id"> <a
+href="http://www.developerscrappad.com/author/maxlam/" class="avatar-img-link"><img
+alt='Max Lam' src='http://www.developerscrappad.com/wp-content/uploads/2014/06/Max-Lam_avatar_1402415495-50x50.jpg' class='avatar avatar-50 photo' height='50' width='50' /></a><h6 class="smaller">About the Author</h6><h4><a
+href="http://www.developerscrappad.com/author/maxlam/" title="Posts by Max Lam" rel="author">Max Lam</a></h4></div><p>Born and currently resides in Malaysia, a seasoned Java developer whom had held positions as Senior Developer, Consultant and Technical Architect in various enterprise software development companies.</p></div></div><div
+class="post-single-prev-next ts-post-section-inner clearfix"><div
+class="post-single-next"></div><div
+class="post-single-prev"><a
+href="http://www.developerscrappad.com/2340/java/java-ee/rest-jax-rs/how-to-streamserialize-jpa-result-as-jax-rs-response-for-large-data/" rel="prev"><span
+class="dir smaller uppercase">Older<i
+class="fa fa-chevron-right"></i></span><span
+class="title">How To Stream/Serialize JPA Result As JAX-RS Response For Large Data</span></a></div></div><div
+class="ts-related-posts-on-single ts-post-section-inner"><h5 class="smaller uppercase">Related Posts</h4><div
+class="loop-wrap loop-3-column-wrap "><div
+class="hfeed entries blog-entries loop loop-3-column has-sidebar clearfix"><div
+id="post-2340" class="hentry entry span4"><div
+class="post-content"><div
+class="post-category post-category-heading mimic-small uppercase has-media showing-media"> <a
+href="http://www.developerscrappad.com/category/java/java-ee/rest-jax-rs/"><strong>REST (JAX-RS)</strong></a></div><div
+class="ts-meta-wrap media-meta-wrap"><div
+class="featured-media-wrap ts-fade-in  ts-featured-media-standard"><div
+class="featured-photo  yes"><a
+href="http://www.developerscrappad.com/2340/java/java-ee/rest-jax-rs/how-to-streamserialize-jpa-result-as-jax-rs-response-for-large-data/" class="featured-photo-link"><img
+src="http://i0.wp.com/www.developerscrappad.com/wp-content/uploads/2015/06/1429557_56569184.jpg?resize=480,320" alt="" width="480"/></a></div></div><div
+class="entry-info post-entry-info"><p
+class="small-size clearfix "><span
+class="meta-item meta-item-author subtle-text-color stylized-meta">By <a
+href="http://www.developerscrappad.com/author/maxlam/" class="author vcard">Max Lam</a></span><span
+class="meta-item meta-item-date published small uppercase" title="2015-06-29T00:25:28">Jun 29</span></p></div></div><div
+class="title-date clearfix"><div
+class="title-info"><h4 class="title-h entry-title "><a
+href="http://www.developerscrappad.com/2340/java/java-ee/rest-jax-rs/how-to-streamserialize-jpa-result-as-jax-rs-response-for-large-data/">How To Stream/Serialize JPA Result As JAX-RS Response For Large Data</a></h4></div></div><div
+class="post"><p
+class="entry-summary "> (adsbygoogle = window.adsbygoogle || []).push({});
+There are times that retrieving a large...</p><div
+class="read-more-wrap "><div
+class="read-more mimic-smaller uppercase"><a
+href="http://www.developerscrappad.com/2340/java/java-ee/rest-jax-rs/how-to-streamserialize-jpa-result-as-jax-rs-response-for-large-data/" rel="bookmark"><strong>Read more</strong></a></div></div></div></div></div><div
+id="post-2308" class="hentry entry span4"><div
+class="post-content"><div
+class="post-category post-category-heading mimic-small uppercase has-media showing-media"> <a
+href="http://www.developerscrappad.com/category/java/java-ee/rest-jax-rs/"><strong>REST (JAX-RS)</strong></a></div><div
+class="ts-meta-wrap media-meta-wrap"><div
+class="featured-media-wrap ts-fade-in  ts-featured-media-standard"><div
+class="featured-photo  yes"><a
+href="http://www.developerscrappad.com/2308/java/java-ee/rest-jax-rs/java-rest-jax-rs-2-0-how-to-handle-date-time-and-timestamp-data-types/" class="featured-photo-link"><img
+src="http://i0.wp.com/www.developerscrappad.com/wp-content/uploads/2015/06/1428951_49150650.jpg?resize=480,320" alt="" width="480"/></a></div></div><div
+class="entry-info post-entry-info"><p
+class="small-size clearfix "><span
+class="meta-item meta-item-author subtle-text-color stylized-meta">By <a
+href="http://www.developerscrappad.com/author/maxlam/" class="author vcard">Max Lam</a></span><span
+class="meta-item meta-item-date published small uppercase" title="2015-06-25T09:08:22">Jun 25</span></p></div></div><div
+class="title-date clearfix"><div
+class="title-info"><h4 class="title-h entry-title "><a
+href="http://www.developerscrappad.com/2308/java/java-ee/rest-jax-rs/java-rest-jax-rs-2-0-how-to-handle-date-time-and-timestamp-data-types/">Java REST JAX-RS 2.0 &#8211; How To Handle Date, Time and Timestamp Data Types</a></h4></div></div><div
+class="post"><p
+class="entry-summary ">Be it X-Form-Urlencoded or JSON HTTP post to a REST resource end-point, there is no specific “data...</p><div
+class="read-more-wrap "><div
+class="read-more mimic-smaller uppercase"><a
+href="http://www.developerscrappad.com/2308/java/java-ee/rest-jax-rs/java-rest-jax-rs-2-0-how-to-handle-date-time-and-timestamp-data-types/" rel="bookmark"><strong>Read more</strong></a></div></div></div></div></div><div
+id="post-2331" class="hentry entry span4"><div
+class="post-content"><div
+class="post-category post-category-heading mimic-small uppercase has-media showing-media"> <a
+href="http://www.developerscrappad.com/category/java/java-ee/rest-jax-rs/"><strong>REST (JAX-RS)</strong></a></div><div
+class="ts-meta-wrap media-meta-wrap"><div
+class="featured-media-wrap ts-fade-in  ts-featured-media-standard"><div
+class="featured-photo  yes"><a
+href="http://www.developerscrappad.com/2331/java/java-ee/rest-jax-rs/quick-note-how-to-disable-jax-rs-response-cache/" class="featured-photo-link"><img
+src="http://i0.wp.com/www.developerscrappad.com/wp-content/uploads/2012/10/1394496_13224780.jpg?resize=480,320" alt="" width="480"/></a></div></div><div
+class="entry-info post-entry-info"><p
+class="small-size clearfix "><span
+class="meta-item meta-item-author subtle-text-color stylized-meta">By <a
+href="http://www.developerscrappad.com/author/maxlam/" class="author vcard">Max Lam</a></span><span
+class="meta-item meta-item-date published small uppercase" title="2015-06-24T23:07:14">Jun 24</span></p></div></div><div
+class="title-date clearfix"><div
+class="title-info"><h4 class="title-h entry-title "><a
+href="http://www.developerscrappad.com/2331/java/java-ee/rest-jax-rs/quick-note-how-to-disable-jax-rs-response-cache/">Quick Note: How To Disable JAX-RS Response Cache</a></h4></div></div><div
+class="post"><p
+class="entry-summary ">By default, JAX-RS Response is cached (at least on Glassfish Application Server). If you are...</p><div
+class="read-more-wrap "><div
+class="read-more mimic-smaller uppercase"><a
+href="http://www.developerscrappad.com/2331/java/java-ee/rest-jax-rs/quick-note-how-to-disable-jax-rs-response-cache/" rel="bookmark"><strong>Read more</strong></a></div></div></div></div></div><div
+class="clear"></div></div></div></div></div><div
+id="ts-comments-wrap-wrap" class="clearfix ts-post-section"><div
+id="ts-comments-wrap" class="ts-post-section-inner"></div></div></div></div></div></div><div
+id="sidebar" class="PrimarySidebar sidebar sidebar-right"><div
+id="ts_facebook_twitter_widget-2" class="widget ts-facebook-twitter-widget clearfix"><div
+class="inner clearfix"><div
+class="page-title clearfix"><h5 class="mimic-small uppercase subtle-text-color"><span>Keep In Touch</span></h5></div>
+
+<!-- W3 Total Cache: Minify debug info:
+Engine:             disk
+Theme:              92d75
+Template:           single
+
+Replaced CSS files:
+1. wp-content/plugins/crayon-syntax-highlighter/css/min/crayon.min.css
+2. wp-content/plugins/crayon-syntax-highlighter/themes/feeldesign/feeldesign.css
+3. wp-content/plugins/crayon-syntax-highlighter/fonts/monaco.css
+4. wp-content/themes/matador/css/font-awesome.min.css
+5. wp-content/themes/matador/style.css
+6. wp-content/plugins/footable/css/footable.core.min.css
+7. wp-content/plugins/footable/css/footable.standalone.min.css
+8. wp-content/plugins/jetpack/_inc/genericons/genericons/genericons.css
+9. wp-content/plugins/jetpack/css/jetpack.css
+
+Replaced JavaScript files:
+1. wp-includes/js/jquery/jquery.js
+2. wp-includes/js/jquery/jquery-migrate.min.js
+3. wp-content/plugins/jetpack/modules/related-posts/related-posts.js
+4. wp-content/plugins/crayon-syntax-highlighter/js/min/crayon.min.js
+5. wp-content/plugins/footable/js/footable.min.js
+6. wp-content/plugins/footable/js/footable.sort.min.js
+7. wp-content/plugins/footable/js/footable.paginate.min.js
+-->
+
+<!-- W3 Total Cache: Page cache debug info:
+Engine:             disk: enhanced
+Cache key:          www.developerscrappad.com/2364/java/java-ee/rest-jax-rs/how-to-perform-http-basic-access-authentication-with-jax-rs-rest-client/_index.html
+Caching:            enabled
+Creation Time:      0.003s
+Header info:
+Last-Modified:       Thu, 01 Jan 1970 00:00:00 GMT
+Pragma:              public
+Cache-Control:       max-age=3600, public
+Etag:                802c694addb01146eabab889b78cd94b
+X-Powered-By:        W3 Total Cache/0.9.4.1
+-->

@@ -1,0 +1,8 @@
+*.iml
+.idea
+*.iws
+target
+security.p12
+security.pem
+uploaded.txt
+.secret
