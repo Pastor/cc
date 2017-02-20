@@ -1,2 +1,0 @@
-# cstorage
-Crypto storage
