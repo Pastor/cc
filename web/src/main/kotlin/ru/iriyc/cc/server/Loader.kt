@@ -14,7 +14,7 @@ class ApplicationConfiguration : ResourceConfig() {
 
 fun main(args: Array<String>): Unit {
     UserService.register("test", "test")
-    val embedded = EmbeddedServer(8000, false)
+    val embedded = EmbeddedServer(8766, false)
     embedded.start()
     embedded.join()
 }
