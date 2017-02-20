@@ -21,7 +21,7 @@ class RegisterController {
                 toString(Charsets.UTF_8).split(":").map(String::trim)
         val username = content[0]
         val password = content[1]
-        UserService.register(username, password);
+        UserService.register(username, password)
         return Response.created(null).build()
     }
 }

@@ -20,7 +20,7 @@ internal object UserService {
             throw IllegalArgumentException("Пароль пользователя не может быть пустым")
         val keys = AsymmetricService.generateKeys()
         val paddingPassword = password(password)
-        val encryptedPrivateKey = SymmetricService.encrypt(paddingPassword, keys.privateKey.getEncoded())
+        val encryptedPrivateKey = SymmetricService.encrypt(paddingPassword, keys.privateKey.encoded)
         val registeredUser = User(
                 publicKey = BaseEncoding.base64().encode(keys.publicKey.encoded),
                 privateKey = BaseEncoding.base64().encode(encryptedPrivateKey),

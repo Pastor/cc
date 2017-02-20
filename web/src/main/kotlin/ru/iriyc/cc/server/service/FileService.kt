@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
 internal object FileService {
     private val USER_FILESYSTEM_QUOTE = 20 * 1024 * 1024
     private val MAX_FILE_SIZE = 50 * 1024 * 1024
-    private val OUTPUT_DIRECTORY: File
+    private val OUTPUT_DIRECTORY: File = File(".secret")
     private val cache = HashMap<String, Stream>()
     private val quotes = HashMap<String, AtomicInteger>()
 
@@ -23,7 +23,7 @@ internal object FileService {
         val result = LinkedList<Stream>()
         cache.forEach { id, stream ->
             run {
-                val owner = stream.owner;
+                val owner = stream.owner
                 if (owner != null && owner.username.contentEquals(username)) {
                     result.add(stream)
                 }
@@ -72,7 +72,7 @@ internal object FileService {
                 secretKey = BaseEncoding.base64().encode(encryptedSecretKey),
                 linker = owner,
                 rights = rights)
-        val quote = quote(linkTo.username);
+        val quote = quote(linkTo.username)
         quote.addAndGet(info.size.toInt())
         quotes[linkTo.username] = quote
         return create(copy, linkTo)
@@ -93,7 +93,7 @@ internal object FileService {
         if (quote == null) {
             quote = AtomicInteger(0)
         }
-        return quote;
+        return quote
     }
 
     internal fun info(id: String) = cache[id]
@@ -136,7 +136,6 @@ internal object FileService {
     }
 
     init {
-        OUTPUT_DIRECTORY = File(".secret")
         if (!OUTPUT_DIRECTORY.exists())
             OUTPUT_DIRECTORY.mkdir()
     }
@@ -152,7 +151,7 @@ internal object FileService {
             } else {
                 quote.get() - info.size
             }
-            quote.set(size.toInt());
+            quote.set(size.toInt())
             quotes[username] = quote
         }
         /*FIXME: Мы должны проверить, что этот файл больше никому не бул передан*/

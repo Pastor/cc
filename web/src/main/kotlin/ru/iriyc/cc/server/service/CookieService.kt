@@ -11,11 +11,9 @@ internal object CookieService {
     internal val TOKEN_NAME = "X-Authority-Token"
 
     internal fun token(request: HttpServletRequest): String? {
-        for (cookie in request.cookies) {
-            if (cookie.name.contentEquals(TOKEN_NAME))
-                return cookie.value
-        }
-        return null
+        return request.cookies
+                .firstOrNull { it.name.contentEquals(TOKEN_NAME) }
+                ?.value
     }
 
     internal fun addCookie(token: String, resp: HttpServletResponse) {

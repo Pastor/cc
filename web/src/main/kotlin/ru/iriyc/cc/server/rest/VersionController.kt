@@ -20,5 +20,5 @@ class VersionController {
 
     data class Result(var minor: Int = 0,
                       var major: Int = 0,
-                      var build: Int = 0);
+                      var build: Int = 0)
 }

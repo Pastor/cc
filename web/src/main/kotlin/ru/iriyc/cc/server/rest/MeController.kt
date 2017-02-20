@@ -47,7 +47,7 @@ class MeController {
     @Produces(MediaType.APPLICATION_JSON)
     fun listStream(): Response {
         val username = sc.userPrincipal.name
-        val list = FileService.list(username);
+        val list = FileService.list(username)
         return Response.ok(list).build()
     }
 }

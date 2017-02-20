@@ -57,7 +57,7 @@ class StreamController {
         val username = sc.userPrincipal.name
         val info = FileService.info(id) ?: return Response.status(Response.Status.NOT_FOUND).build()
         FileService.validateQuote(username, fileSize)
-        FileService.upload(info, TokenService.keys(username), stream);
+        FileService.upload(info, TokenService.keys(username), stream)
         return Response.status(Response.Status.CREATED).build()
     }
 
@@ -69,7 +69,7 @@ class StreamController {
         val username = sc.userPrincipal.name
         val info = FileService.info(id) ?: return Response.status(Response.Status.NOT_FOUND).build()
         val stream = javax.ws.rs.core.StreamingOutput {
-            val output = it;
+            val output = it
             FileService.download(info, TokenService.keys(username)).use {
                 ByteStreams.copy(it, output)
             }
@@ -83,7 +83,7 @@ class StreamController {
     @Produces(MediaType.APPLICATION_JSON)
     fun listStream(): Response {
         val username = sc.userPrincipal.name
-        val list = FileService.list(username);
+        val list = FileService.list(username)
         return Response.ok(list).build()
     }
 
@@ -92,7 +92,7 @@ class StreamController {
     @Path("/{id}")
     fun deleteStream(@PathParam("id") id: String): Response {
         val username = sc.userPrincipal.name
-        FileService.delete(id, username);
+        FileService.delete(id, username)
         return Response.status(Response.Status.OK).build()
     }
 
