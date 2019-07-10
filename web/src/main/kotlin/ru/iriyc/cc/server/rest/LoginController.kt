@@ -25,7 +25,7 @@ class LoginController {
 
     @POST
     @Path("/")
-    fun login(@FormParam("username") username: String, @FormParam("password") password: String): Unit {
+    fun login(@FormParam("username") username: String, @FormParam("password") password: String) {
         try {
             val keys = UserService.authenticate(username, password)
             val token = TokenService.generate(username, keys, WebAuthenticate())
@@ -39,7 +39,7 @@ class LoginController {
     @Secured
     @POST
     @Path("/logout")
-    fun logout(): Unit {
+    fun logout() {
         try {
             val username = sc.userPrincipal.name
             TokenService.delete(username)

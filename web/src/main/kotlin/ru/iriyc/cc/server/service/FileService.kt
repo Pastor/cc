@@ -13,8 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger
 
 
 internal object FileService {
-    private val USER_FILESYSTEM_QUOTE = 20 * 1024 * 1024
-    private val MAX_FILE_SIZE = 50 * 1024 * 1024
+    private const val USER_FILESYSTEM_QUOTE = 20 * 1024 * 1024
+    private const val MAX_FILE_SIZE = 50 * 1024 * 1024
     private val OUTPUT_DIRECTORY: File = File(".secret")
     private val cache = HashMap<String, Stream>()
     private val quotes = HashMap<String, AtomicInteger>()
@@ -123,11 +123,11 @@ internal object FileService {
         try {
             val privateKey = SymmetricService.generatePrivateKey()
             val encryptedSecretKey = AsymmetricService.encrypt(keys.publicKey, privateKey)
-            FileOutputStream(file(info.hash)).use({ output ->
+            FileOutputStream(file(info.hash)).use { output ->
                 val hash = SymmetricService.encrypt(privateKey, inputStream, output)
                 if (!hash.equals(info.hash, ignoreCase = true))
                     throw RuntimeException("Hash не совпадает")
-            })
+            }
             cache[info.id!!] = info.copy(secretKey = BaseEncoding.base64().encode(encryptedSecretKey))
         } catch (e: Exception) {
             e.printStackTrace()

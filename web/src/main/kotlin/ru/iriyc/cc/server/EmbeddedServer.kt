@@ -15,8 +15,8 @@ import java.util.*
 
 
 class EmbeddedServer constructor(val port: Int, val isSecurity: Boolean = true) {
+    private val webBase = "src/main/webapp"
     val server = Server(port)
-    val webBase = "src/main/webapp"
     val securePort = port + 443;
 
     init {
@@ -28,7 +28,7 @@ class EmbeddedServer constructor(val port: Int, val isSecurity: Boolean = true) 
         val web = WebAppContext()
         web.resourceBase = webBase
         web.contextPath = "/"
-        web.defaultsDescriptor = webBase + "/WEB-INF/web.xml"
+        web.defaultsDescriptor = "$webBase/WEB-INF/web.xml"
         web.setAttribute("org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern",
                 ".*/[^/]*servlet-api-[^/]*\\.jar$|.*/javax.servlet.jsp.jstl-.*\\.jar$|.*/.*taglibs.*\\.jar$|.*/.*jstl.*\\.jar$")
         web.setAttribute("org.eclipse.jetty.containerInitializers", jspInitializers())
@@ -37,12 +37,12 @@ class EmbeddedServer constructor(val port: Int, val isSecurity: Boolean = true) 
         server.handler = web
     }
 
-    fun start(): Unit {
+    fun start() {
         if (!server.isRunning)
             server.start()
     }
 
-    fun join(): Unit {
+    fun join() {
         server.join()
     }
 
@@ -56,7 +56,7 @@ class EmbeddedServer constructor(val port: Int, val isSecurity: Boolean = true) 
 
     @Throws(Exception::class)
     private fun secureServer(server: Server) {
-        val AUTHORITY = Authority(
+        val authority = Authority(
                 File("."),
                 "security",
                 "123456".toCharArray(),
@@ -64,7 +64,7 @@ class EmbeddedServer constructor(val port: Int, val isSecurity: Boolean = true) 
                 "test",
                 "test"
         )
-        val ksFile = CertificateService.initializeKeyStore(AUTHORITY)
+        val ksFile = CertificateService.initializeKeyStore(authority)
 
         val http = ServerConnector(server)
         http.port = port
@@ -78,9 +78,9 @@ class EmbeddedServer constructor(val port: Int, val isSecurity: Boolean = true) 
         config.addCustomizer(src)
 
         val context = SslContextFactory(true)
-        context.certAlias = AUTHORITY.alias
+        context.certAlias = authority.alias
         context.keyStorePath = ksFile.absolutePath
-        val password = encrypt(AUTHORITY.password)
+        val password = encrypt(authority.password)
         context.setKeyStorePassword(password)
         context.setKeyManagerPassword(password)
         val factory = SslConnectionFactory(context, HttpVersion.HTTP_1_1.asString())

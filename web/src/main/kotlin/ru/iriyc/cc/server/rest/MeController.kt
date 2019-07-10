@@ -26,7 +26,7 @@ class MeController {
     @Context
     private lateinit var response: HttpServletResponse
 
-    @Secured(value = *arrayOf("me_logout"))
+    @Secured(value = ["me_logout"])
     @POST
     @Path("/logout")
     fun logout(): Response {
@@ -41,7 +41,7 @@ class MeController {
         }
     }
 
-    @Secured(value = *arrayOf("stream_list"))
+    @Secured(value = ["stream_list"])
     @GET
     @Path("/list")
     @Produces(MediaType.APPLICATION_JSON)

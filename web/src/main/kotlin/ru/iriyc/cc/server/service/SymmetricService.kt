@@ -9,9 +9,9 @@ import javax.crypto.spec.SecretKeySpec
 
 internal object SymmetricService {
     private val random = SecureRandom()
-    val PRIVATE_KEY_SIZE = 128
-    private val ALGORITHM = "AES"
-    private val TRANSFORMATION = "AES"
+    private const val PRIVATE_KEY_SIZE = 128
+    private const val ALGORITHM = "AES"
+    private const val TRANSFORMATION = "AES"
 
     internal fun encrypt(key: ByteArray, input: ByteArray): ByteArray {
         try {

@@ -13,7 +13,7 @@ import kotlin.concurrent.thread
 
 
 internal object TokenService {
-    internal val TOKEN_TTL = 1L
+    internal const val TOKEN_TTL = 1L
     private val tokenCache = ConcurrentHashMap<String, Token>()
     private val keysCache = ConcurrentHashMap<String, AsymmetricService.Keys>()
     private val random = SecureRandom()
@@ -75,10 +75,10 @@ internal object TokenService {
     init {
         thread(isDaemon = true, name = "KeysCleaner") {
             while (keysCleanerRunning.get()) {
-                tokenCache.forEach({
+                tokenCache.forEach {
                     if (it.value.isExpired)
                         keysCache.remove(it.key)
-                })
+                }
                 Thread.sleep(5000)
             }
         }

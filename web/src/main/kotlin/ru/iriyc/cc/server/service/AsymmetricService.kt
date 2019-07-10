@@ -8,9 +8,9 @@ import javax.crypto.Cipher
 
 internal object AsymmetricService {
     private val FACTORY: KeyFactory
-    private val ALGORITHM = "RSA"
-    private val PRIVATE_KEY_SIZE = 1024
-    private val TRANSFORMATION = "RSA/ECB/PKCS1Padding"
+    private const val ALGORITHM = "RSA"
+    private const val PRIVATE_KEY_SIZE = 1024
+    private const val TRANSFORMATION = "RSA/ECB/PKCS1Padding"
 
     init {
         try {
@@ -80,11 +80,11 @@ internal object AsymmetricService {
         return encrypt(key, input)
     }
 
-    internal fun encrypt(publicKey: PublicKey, input: InputStream, output: OutputStream) {
+    private fun encrypt(publicKey: PublicKey, input: InputStream, output: OutputStream) {
         CryptoService.doCrypto(Cipher.ENCRYPT_MODE, publicKey, TRANSFORMATION, input, output)
     }
 
-    internal fun decrypt(privateKey: PrivateKey, input: InputStream, output: OutputStream) {
+    private fun decrypt(privateKey: PrivateKey, input: InputStream, output: OutputStream) {
         CryptoService.doCrypto(Cipher.DECRYPT_MODE, privateKey, TRANSFORMATION, input, output)
     }
 

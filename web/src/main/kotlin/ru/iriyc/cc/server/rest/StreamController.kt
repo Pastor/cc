@@ -25,14 +25,14 @@ class StreamController {
     @Context
     private lateinit var request: HttpServletRequest
 
-    @Secured(value = *arrayOf("stream_check"))
+    @Secured(value = ["stream_check"])
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     fun check() {
         Response.status(Response.Status.OK).entity("SUCCESS").build()
     }
 
-    @Secured(value = *arrayOf("stream_create"))
+    @Secured(value = ["stream_create"])
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -47,7 +47,7 @@ class StreamController {
         return Response.status(Response.Status.CREATED).entity(id).build()
     }
 
-    @Secured(value = *arrayOf("stream_upload"))
+    @Secured(value = ["stream_upload"])
     @POST
     @Path("/{id}")
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
@@ -61,23 +61,23 @@ class StreamController {
         return Response.status(Response.Status.CREATED).build()
     }
 
-    @Secured(value = *arrayOf("stream_download"))
+    @Secured(value = ["stream_download"])
     @GET
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     fun downloadStream(@PathParam("id") id: String): Response {
         val username = sc.userPrincipal.name
         val info = FileService.info(id) ?: return Response.status(Response.Status.NOT_FOUND).build()
-        val stream = javax.ws.rs.core.StreamingOutput {
+        val stream = StreamingOutput {
             val output = it
-            FileService.download(info, TokenService.keys(username)).use {
-                ByteStreams.copy(it, output)
+            FileService.download(info, TokenService.keys(username)).use { stream ->
+                ByteStreams.copy(stream, output)
             }
         }
         return Response.ok(stream).build()
     }
 
-    @Secured(value = *arrayOf("stream_list"))
+    @Secured(value = ["stream_list"])
     @GET
     @Path("/list")
     @Produces(MediaType.APPLICATION_JSON)
@@ -87,7 +87,7 @@ class StreamController {
         return Response.ok(list).build()
     }
 
-    @Secured(value = *arrayOf("stream_delete"))
+    @Secured(value = ["stream_delete"])
     @DELETE
     @Path("/{id}")
     fun deleteStream(@PathParam("id") id: String): Response {
@@ -96,7 +96,7 @@ class StreamController {
         return Response.status(Response.Status.OK).build()
     }
 
-    @Secured(value = *arrayOf("stream_link"))
+    @Secured(value = ["stream_link"])
     @POST
     @Path("/{id}/link/{username}")
     fun linkStream(@PathParam("id") id: String,

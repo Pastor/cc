@@ -8,11 +8,11 @@ import javax.servlet.http.HttpServletResponse
 
 internal object CookieService {
 
-    internal val TOKEN_NAME = "X-Authority-Token"
+    private const val TOKEN_NAME = "X-Authority-Token"
 
     internal fun token(request: HttpServletRequest): String? {
         return request.cookies
-                .firstOrNull { it.name.contentEquals(TOKEN_NAME) }
+                .firstOrNull { it.name!!.contentEquals(TOKEN_NAME) }
                 ?.value
     }
 

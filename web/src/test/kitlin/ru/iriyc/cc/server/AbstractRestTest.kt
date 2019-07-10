@@ -95,8 +95,7 @@ abstract class AbstractRestTest {
 
     protected fun upload(file: File, token: String): String {
         val info = Stream(file.name, file.length(),
-                Hashing.sha256().newHasher().
-                        putBytes(Files.toByteArray(file)).hash().toString().toUpperCase())
+                Hashing.sha256().newHasher().putBytes(Files.toByteArray(file)).hash().toString().toUpperCase())
         val request = authorityTarget("/stream", token)
         val response = request.put(Entity.entity(info, MediaType.APPLICATION_JSON_TYPE))
         assertEquals(response.status, Response.Status.CREATED.statusCode)
@@ -163,11 +162,11 @@ abstract class AbstractRestTest {
             })
             val context = SSLContext.getInstance("TLSv1.2")
             context.init(null, trustManager, null)
-            HttpsURLConnection.setDefaultHostnameVerifier({ s, sslSession -> true })
+            HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
             HttpsURLConnection.setDefaultSSLSocketFactory(context.socketFactory)
             return ClientBuilder.newBuilder()
                     .register(MultiPartFeature::class.java)
-                    .hostnameVerifier({ s, sslSession -> true })
+                    .hostnameVerifier { _, _ -> true }
                     .sslContext(context)
                     .build()!!
         }

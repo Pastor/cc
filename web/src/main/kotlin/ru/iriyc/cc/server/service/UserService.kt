@@ -41,7 +41,7 @@ internal object UserService {
 
     internal fun authenticate(username: String, password: String): AsymmetricService.Keys {
         val user = cache[username] ?:
-                throw IllegalArgumentException(String.format("Пользователь %s не зарегистрирован", username))
+                throw IllegalArgumentException("Пользователь $username не зарегистрирован")
         if (password.isEmpty())
             throw IllegalArgumentException("Пароль пользователя не может быть пустым")
         val paddingPassword = password(password)

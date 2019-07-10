@@ -27,16 +27,16 @@ import java.util.*
 
 internal object CertificateService {
 
-    private val PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME
+    private const val PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME
 
     init {
         Security.addProvider(BouncyCastleProvider())
     }
 
-    private val KEYGEN_ALGORITHM = "RSA"
-    private val SECURE_RANDOM_ALGORITHM = "SHA1PRNG"
-    private val SIGNATURE_ALGORITHM = "SHA1WithRSAEncryption"
-    private val ROOT_KEY_SIZE = 2048
+    private const val KEYGEN_ALGORITHM = "RSA"
+    private const val SECURE_RANDOM_ALGORITHM = "SHA1PRNG"
+    private const val SIGNATURE_ALGORITHM = "SHA1WithRSAEncryption"
+    private const val ROOT_KEY_SIZE = 2048
     private val NOT_BEFORE = Date(System.currentTimeMillis() - 86400000L * 365)
     private val NOT_AFTER = Date(System.currentTimeMillis() + 86400000L * 365 * 100)
 
