@@ -334,3 +334,94 @@ async fn malformed_token_is_refused() {
     server.stop().await.unwrap();
     assert_eq!(status, 401, "неразбираемый токен принят");
 }
+
+#[tokio::test]
+async fn repeated_failures_are_throttled() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let _ = call(
+        &server,
+        "POST",
+        "/api/users",
+        "",
+        Some(&enrollment("user@example.com", [7; 32])),
+    )
+    .await;
+    let mut last = 0;
+    for _ in 0..8 {
+        let (status, _) = call(
+            &server,
+            "POST",
+            "/api/sessions",
+            "",
+            Some(&credentials("user@example.com", [8; 32])),
+        )
+        .await;
+        last = status;
+    }
+    server.stop().await.unwrap();
+    assert_eq!(
+        last, 429,
+        "подбор аутентификационного хеша не ограничен по частоте"
+    );
+}
+
+#[tokio::test]
+async fn throttled_refusal_reports_retry_after() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let _ = call(
+        &server,
+        "POST",
+        "/api/users",
+        "",
+        Some(&enrollment("user@example.com", [7; 32])),
+    )
+    .await;
+    let mut response = String::new();
+    for _ in 0..8 {
+        let (_, body) = call(
+            &server,
+            "POST",
+            "/api/sessions",
+            "",
+            Some(&credentials("user@example.com", [8; 32])),
+        )
+        .await;
+        response = body;
+    }
+    server.stop().await.unwrap();
+    assert!(
+        response.to_lowercase().contains("retry-after"),
+        "отказ по частоте не сообщил, когда повторять"
+    );
+}
+
+#[tokio::test]
+async fn successful_login_is_not_throttled() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let auth = [7_u8; 32];
+    let _ = call(
+        &server,
+        "POST",
+        "/api/users",
+        "",
+        Some(&enrollment("user@example.com", auth)),
+    )
+    .await;
+    let mut last = 0;
+    for _ in 0..8 {
+        let (status, _) = call(
+            &server,
+            "POST",
+            "/api/sessions",
+            "",
+            Some(&credentials("user@example.com", auth)),
+        )
+        .await;
+        last = status;
+    }
+    server.stop().await.unwrap();
+    assert_eq!(last, 201, "успешные входы подряд ограничены как подбор");
+}

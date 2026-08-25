@@ -9,8 +9,9 @@ mod config;
 pub use config::{Config, Limits, Secrets};
 
 use anyhow::Context as _;
+use cc_api::Guards;
 use cc_api::State;
-use cc_storage::{Blobs, Confirmations, Sessions, Users};
+use cc_storage::{Blobs, Confirmations, Sessions, Throttle, Users};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -72,7 +73,7 @@ pub async fn serve(config: &Config) -> anyhow::Result<Server> {
         users,
         Arc::clone(&sessions),
         Arc::new(blobs),
-        Arc::new(Confirmations::new()),
+        Arc::new(Guards::new(Confirmations::new(), Throttle::new())),
     );
     let router = cc_api::router(
         state,
@@ -86,15 +87,20 @@ pub async fn serve(config: &Config) -> anyhow::Result<Server> {
     let sweeping = Sessions::sweeper(sessions, time::Duration::minutes(1), watch.clone());
     let serving = tokio::spawn(async move {
         let mut watch = watch;
-        axum::serve(listener, router)
-            .with_graceful_shutdown(async move {
-                while watch.changed().await.is_ok() {
-                    if *watch.borrow() {
-                        break;
-                    }
+        // Адрес источника нужен ограничению частоты: без него все обращения
+        // выглядят пришедшими из одного места.
+        axum::serve(
+            listener,
+            router.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .with_graceful_shutdown(async move {
+            while watch.changed().await.is_ok() {
+                if *watch.borrow() {
+                    break;
                 }
-            })
-            .await
+            }
+        })
+        .await
     });
     Ok(Server {
         address,

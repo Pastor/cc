@@ -13,6 +13,7 @@
 use crate::auth::Authenticated;
 use crate::bytes::Binary;
 use crate::problem::Failure;
+use crate::source::Source;
 use crate::state::State;
 use axum::extract::{Path, State as Extract};
 use axum::response::{IntoResponse, Response};
@@ -92,20 +93,47 @@ pub struct Entry {
 )]
 pub(crate) async fn open(
     Extract(state): Extract<State>,
+    source: Source,
     Json(request): Json<Credentials>,
 ) -> Result<Response, Failure> {
     let login = Username::new(request.login)?;
+    // Ограничение ведётся по двум измерениям сразу: только по источнику
+    // обходится сменой адреса, только по учётной записи позволяет заблокировать
+    // вход чужому человеку, зная его логин (`TODO.md`, раздел 8).
+    let keys = [format!("login:{login}"), format!("source:{}", source.key())];
+    let now = OffsetDateTime::now_utc();
+    for key in &keys {
+        state
+            .guards()
+            .throttle()
+            .permit(key, now)
+            .await
+            .map_err(|wait| Failure::TooSoon {
+                seconds: wait.seconds(),
+            })?;
+    }
     let auth = AuthHash::new(
         request
             .auth
             .into_array::<KEY_LEN>()
             .map_err(|_| Failure::Malformed)?,
     );
-    let (user, wrapped) = state.users().authenticate(&login, &auth).await?;
-    let (token, session) = state
-        .sessions()
-        .open(user.id(), Rights::all(), OffsetDateTime::now_utc())
-        .await;
+    let authenticated = state.users().authenticate(&login, &auth).await;
+    let (user, wrapped) = match authenticated {
+        Ok(pair) => {
+            for key in &keys {
+                state.guards().throttle().succeeded(key).await;
+            }
+            pair
+        }
+        Err(failure) => {
+            for key in &keys {
+                state.guards().throttle().failed(key, now).await;
+            }
+            return Err(failure.into());
+        }
+    };
+    let (token, session) = state.sessions().open(user.id(), Rights::all(), now).await;
     let location = format!("/api/sessions/{}", session.id());
     let body = Entry {
         session: Issued {

@@ -1,6 +1,6 @@
 //! Разделяемое состояние приложения.
 
-use cc_storage::{Blobs, Confirmations, Sessions, Users};
+use cc_storage::{Blobs, Confirmations, Sessions, Throttle, Users};
 use std::sync::Arc;
 
 /// То, что обработчики получают от приложения.
@@ -11,7 +11,37 @@ pub struct State {
     users: Arc<Users>,
     sessions: Arc<Sessions>,
     blobs: Arc<Blobs>,
-    confirmations: Arc<Confirmations>,
+    guards: Arc<Guards>,
+}
+
+/// Всё, что защищает сервис от злоупотреблений.
+#[derive(Debug)]
+pub struct Guards {
+    confirmations: Confirmations,
+    throttle: Throttle,
+}
+
+impl Guards {
+    /// Собирает защиту.
+    #[must_use]
+    pub const fn new(confirmations: Confirmations, throttle: Throttle) -> Self {
+        Self {
+            confirmations,
+            throttle,
+        }
+    }
+
+    /// Коды подтверждения почты.
+    #[must_use]
+    pub const fn confirmations(&self) -> &Confirmations {
+        &self.confirmations
+    }
+
+    /// Учёт неудачных попыток.
+    #[must_use]
+    pub const fn throttle(&self) -> &Throttle {
+        &self.throttle
+    }
 }
 
 impl State {
@@ -21,13 +51,13 @@ impl State {
         users: Arc<Users>,
         sessions: Arc<Sessions>,
         blobs: Arc<Blobs>,
-        confirmations: Arc<Confirmations>,
+        guards: Arc<Guards>,
     ) -> Self {
         Self {
             users,
             sessions,
             blobs,
-            confirmations,
+            guards,
         }
     }
 
@@ -49,9 +79,9 @@ impl State {
         &self.blobs
     }
 
-    /// Коды подтверждения почты.
+    /// Защита от злоупотреблений.
     #[must_use]
-    pub fn confirmations(&self) -> &Confirmations {
-        &self.confirmations
+    pub fn guards(&self) -> &Guards {
+        &self.guards
     }
 }

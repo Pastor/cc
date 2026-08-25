@@ -131,6 +131,12 @@ pub enum Failure {
     /// Превышено ограничение частоты.
     #[error("превышено ограничение частоты")]
     TooManyRequests,
+    /// Попытка слишком рано после серии неудач.
+    #[error("следующая попытка возможна через {seconds} с")]
+    TooSoon {
+        /// Сколько секунд ждать.
+        seconds: i64,
+    },
 }
 
 impl Failure {
@@ -154,7 +160,7 @@ impl Failure {
             Self::Unauthenticated => StatusCode::UNAUTHORIZED,
             Self::ConditionRequired => StatusCode::PRECONDITION_REQUIRED,
             Self::ConditionFailed => StatusCode::PRECONDITION_FAILED,
-            Self::TooManyRequests => StatusCode::TOO_MANY_REQUESTS,
+            Self::TooManyRequests | Self::TooSoon { .. } => StatusCode::TOO_MANY_REQUESTS,
         }
     }
 
@@ -175,9 +181,21 @@ impl IntoResponse for Failure {
             return Problem::internal().into_response();
         }
         let status = self.status();
-        Problem::new("about:blank", "запрос отклонён", status)
+        let retry = match self {
+            Self::TooSoon { seconds } => Some(seconds),
+            _ => None,
+        };
+        let mut response = Problem::new("about:blank", "запрос отклонён", status)
             .detailed(self.to_string())
-            .into_response()
+            .into_response();
+        if let Some(seconds) = retry {
+            if let Ok(value) = http::HeaderValue::from_str(&seconds.to_string()) {
+                response
+                    .headers_mut()
+                    .insert(http::header::RETRY_AFTER, value);
+            }
+        }
+        response
     }
 }
 

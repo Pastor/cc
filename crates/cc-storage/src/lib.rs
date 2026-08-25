@@ -8,6 +8,7 @@ mod confirmation;
 mod credentials;
 mod error;
 mod sessions;
+mod throttle;
 mod users;
 
 pub use blobs::Blobs;
@@ -15,4 +16,5 @@ pub use confirmation::{Confirmations, LIFETIME, MAX_ATTEMPTS};
 pub use credentials::{Challenge, Credentials, Registration, Wrapped};
 pub use error::{Error, Result};
 pub use sessions::{Sessions, Token};
+pub use throttle::{RetryAfter, Throttle, BASE_DELAY, FREE_ATTEMPTS, IDLE, MAX_DELAY};
 pub use users::Users;

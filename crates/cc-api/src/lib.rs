@@ -11,6 +11,7 @@ mod observe;
 mod problem;
 mod router;
 mod sessions;
+mod source;
 mod spec;
 mod state;
 mod users;
@@ -22,8 +23,9 @@ pub use observe::trace;
 pub use problem::{stamp, Failure, Problem};
 pub use router::{describe, router, Limits};
 pub use sessions::{Credentials, Current, Entry, Issued, WrappedKeys};
+pub use source::Source;
 pub use spec::Spec;
-pub use state::State;
+pub use state::{Guards, State};
 pub use users::{Enrollment, Kdf, Key, Keys, Prelude, User};
 pub use version::{negotiate, Unsupported, Version, API_VERSION};
 
