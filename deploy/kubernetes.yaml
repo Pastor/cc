@@ -45,6 +45,8 @@ spec:
               value: "12"
             - name: CC_LIMITS__AUTHORIZATION_MINUTES
               value: "5"
+            - name: CC_LIMITS__TRASH_DAYS
+              value: "30"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

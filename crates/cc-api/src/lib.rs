@@ -7,9 +7,11 @@
 
 mod auth;
 mod bytes;
+mod files;
 mod identities;
 mod observe;
 mod problem;
+mod ranges;
 mod router;
 mod sessions;
 mod source;
@@ -20,9 +22,11 @@ mod version;
 
 pub use auth::Authenticated;
 pub use bytes::Binary;
+pub use files::{Creation, Declared, Described, Listing, Paging, Recorded, Wrapping};
 pub use identities::{Attachment, Linked, Requested, Returned, Started};
 pub use observe::trace;
 pub use problem::{stamp, Failure, Problem};
+pub use ranges::{span, Span};
 pub use router::{describe, router, Limits};
 pub use sessions::{Credentials, Current, Entry, Issued, WrappedKeys};
 pub use source::Source;

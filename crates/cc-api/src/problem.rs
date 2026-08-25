@@ -128,6 +128,9 @@ pub enum Failure {
     /// Условие `If-Match` не выполнено.
     #[error("условие If-Match не выполнено")]
     ConditionFailed,
+    /// Запрошенный диапазон вне содержимого.
+    #[error("запрошенный диапазон вне содержимого")]
+    Unsatisfiable,
     /// Превышено ограничение частоты.
     #[error("превышено ограничение частоты")]
     TooManyRequests,
@@ -169,6 +172,7 @@ impl Failure {
             Self::Storage(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::ConditionRequired => StatusCode::PRECONDITION_REQUIRED,
             Self::ConditionFailed => StatusCode::PRECONDITION_FAILED,
+            Self::Unsatisfiable => StatusCode::RANGE_NOT_SATISFIABLE,
             Self::TooManyRequests | Self::TooSoon { .. } => StatusCode::TOO_MANY_REQUESTS,
         }
     }

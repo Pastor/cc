@@ -170,6 +170,7 @@ pub struct Limits {
     request_seconds: u64,
     session_hours: i64,
     authorization_minutes: i64,
+    trash_days: i64,
 }
 
 impl Limits {
@@ -189,6 +190,15 @@ impl Limits {
     #[must_use]
     pub const fn session(self) -> time::Duration {
         time::Duration::hours(self.session_hours)
+    }
+
+    /// Срок хранения удалённого файла в корзине.
+    ///
+    /// По истечении срока файл стирается окончательно вместе с ключами, и
+    /// квота освобождается именно тогда (`TODO.md`, раздел 4.12).
+    #[must_use]
+    pub const fn trash(self) -> time::Duration {
+        time::Duration::days(self.trash_days)
     }
 
     /// Срок жизни запроса авторизации и подписанных данных виджета.
@@ -236,6 +246,7 @@ mod tests {
                 request_seconds = 30
                 session_hours = 1
                 authorization_minutes = 5
+                trash_days = 30
                 "#,
             )?;
             assert!(
@@ -261,6 +272,7 @@ mod tests {
                 request_seconds = 30
                 session_hours = 1
                 authorization_minutes = 5
+                trash_days = 30
                 "#,
             )?;
             assert!(
@@ -286,6 +298,7 @@ mod tests {
                 request_seconds = 30
                 session_hours = 1
                 authorization_minutes = 5
+                trash_days = 30
                 "#,
             )?;
             jail.set_env("CC_LISTEN", "127.0.0.1:4321");
@@ -313,6 +326,7 @@ mod tests {
                 request_seconds = 30
                 session_hours = 1
                 authorization_minutes = 5
+                trash_days = 30
                 "#,
             )?;
             jail.set_env("CC_LISTEN", "127.0.0.1:4321");

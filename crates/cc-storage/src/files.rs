@@ -285,6 +285,47 @@ impl Files {
     }
 }
 
+impl Files {
+    /// Убирает корзину по расписанию, стирая содержимое вместе с записями.
+    ///
+    /// Шифротекст стирается здесь же: запись без содержимого оставила бы
+    /// занятое место, о котором никто больше не знает.
+    #[must_use]
+    pub fn sweeper(
+        files: std::sync::Arc<Self>,
+        blobs: std::sync::Arc<crate::Blobs>,
+        period: Duration,
+        mut shutdown: tokio::sync::watch::Receiver<bool>,
+    ) -> tokio::task::JoinHandle<()> {
+        let period = period
+            .try_into()
+            .unwrap_or(core::time::Duration::from_secs(3600));
+        tokio::spawn(async move {
+            let mut ticks = tokio::time::interval(period);
+            loop {
+                tokio::select! {
+                    _ = ticks.tick() => {
+                        for purged in files.purge(OffsetDateTime::now_utc()).await {
+                            if let Err(failure) = blobs.remove(purged.content()).await {
+                                tracing::warn!(
+                                    error = %failure,
+                                    content = %purged.content(),
+                                    "содержимое из корзины не стёрлось"
+                                );
+                            }
+                        }
+                    }
+                    changed = shutdown.changed() => {
+                        if changed.is_err() || *shutdown.borrow() {
+                            break;
+                        }
+                    }
+                }
+            }
+        })
+    }
+}
+
 /// Собирает представление записи для заявителя, если она ему видна.
 fn listed(record: &Record, claimant: &Claimant, grants: &[Grant]) -> Option<Listed> {
     if !cc_domain::visible(claimant, &record.file, grants) {

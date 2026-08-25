@@ -11,8 +11,8 @@ pub use config::{Config, Limits, Secrets, TelegramBot, VkApp};
 use anyhow::Context as _;
 use cc_api::{Federation, Guards, State, Stores};
 use cc_storage::{
-    Authorizations, Blobs, Confirmations, Discarded, Postbox, Sessions, Telegram, Throttle, Users,
-    Vk,
+    Authorizations, Blobs, Confirmations, Discarded, Files, Postbox, Sessions, Telegram, Throttle,
+    Users, Vk,
 };
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -36,6 +36,7 @@ pub struct Server {
 struct Tasks {
     serving: tokio::task::JoinHandle<std::io::Result<()>>,
     sweeping: tokio::task::JoinHandle<()>,
+    emptying: tokio::task::JoinHandle<()>,
     posting: tokio::task::JoinHandle<()>,
 }
 
@@ -68,6 +69,10 @@ impl Server {
             .sweeping
             .await
             .context("ожидание задачи чистки")?;
+        self.tasks
+            .emptying
+            .await
+            .context("ожидание задачи уборки корзины")?;
         self.tasks
             .posting
             .await
@@ -132,12 +137,19 @@ pub async fn serve(config: &Config) -> anyhow::Result<Server> {
         .context("открытие хранилища шифротекста")?;
     let users = Users::new(config.secrets().server().to_vec(), cc_crypto_params());
     let sessions = Arc::new(Sessions::new(config.limits().session()));
+    let files = Arc::new(Files::new(config.limits().trash()));
+    let blobs = Arc::new(blobs);
     // Транспорт по умолчанию ничего не отправляет: без настроенного релея
     // регистрация не должна ломаться из-за письма. Настоящий транспорт
     // подключается feature `smtp` крейта cc-storage.
     let (postbox, posting) = Postbox::new(Arc::new(Discarded));
     let state = State::new(
-        Arc::new(Stores::new(users, Arc::clone(&sessions), blobs)),
+        Arc::new(Stores::new(
+            users,
+            Arc::clone(&files),
+            Arc::clone(&sessions),
+            Arc::clone(&blobs),
+        )),
         Arc::new(Guards::new(Confirmations::new(), Throttle::new(), postbox)),
         Arc::new(federation(config)?),
     );
@@ -151,6 +163,7 @@ pub async fn serve(config: &Config) -> anyhow::Result<Server> {
     let address = listener.local_addr().context("определение адреса")?;
     let (shutdown, watch) = tokio::sync::watch::channel(false);
     let sweeping = Sessions::sweeper(sessions, time::Duration::minutes(1), watch.clone());
+    let emptying = Files::sweeper(files, blobs, time::Duration::hours(1), watch.clone());
     let serving = tokio::spawn(async move {
         let mut watch = watch;
         // Адрес источника нужен ограничению частоты: без него все обращения
@@ -174,6 +187,7 @@ pub async fn serve(config: &Config) -> anyhow::Result<Server> {
         tasks: Tasks {
             serving,
             sweeping,
+            emptying,
             posting,
         },
     })

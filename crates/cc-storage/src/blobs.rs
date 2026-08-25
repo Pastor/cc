@@ -110,6 +110,33 @@ impl Blobs {
         Ok(buffer)
     }
 
+    /// Открывает шифротекст на чтение с указанного смещения.
+    ///
+    /// Отдаётся не содержимое, а источник: скачивание потоковое, и держать в
+    /// памяти файл целиком незачем.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Missing`], если содержимого нет, и [`Error::Io`] при отказе
+    /// файловой системы.
+    pub async fn reader(
+        &self,
+        id: ContentId,
+        offset: u64,
+        length: u64,
+    ) -> Result<tokio::io::Take<fs::File>> {
+        let path = self.path(id)?;
+        let mut file = fs::File::open(&path).await.map_err(|source| {
+            if source.kind() == std::io::ErrorKind::NotFound {
+                Error::Missing
+            } else {
+                Error::Io(source)
+            }
+        })?;
+        file.seek(std::io::SeekFrom::Start(offset)).await?;
+        Ok(tokio::io::AsyncReadExt::take(file, length))
+    }
+
     /// Удаляет шифротекст окончательно.
     ///
     /// Повторное удаление успешно: операция идемпотентна.

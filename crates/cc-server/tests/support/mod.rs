@@ -62,6 +62,7 @@ body_bytes = 1048576
 request_seconds = 5
 session_hours = 1
 authorization_minutes = 5
+trash_days = 30
 [secrets]
 server = "s3cret-value-for-tests"
 {extra}"#,

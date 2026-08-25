@@ -48,6 +48,7 @@ criterion = { version = "0.8.2", default-features = false, features = ["cargo_be
 lettre = { version = "0.11.23", default-features = false, features = ["smtp-transport", "tokio1-rustls", "builder", "ring", "webpki-roots"] }
 tempfile = { version = "3.27.0", default-features = false }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio", "query", "matched-path"] }
+tokio-util = { version = "0.7.18", default-features = false, features = ["io"] }
 tower = { version = "0.5.3", default-features = false }
 tower-http = { version = "0.7.0", default-features = false, features = ["limit", "timeout", "set-header", "request-id", "trace"] }
 serde = { version = "1.0.229", default-features = false, features = ["derive", "std"] }

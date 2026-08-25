@@ -17,6 +17,7 @@ time.workspace = true
 http.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+tokio-util.workspace = true
 tower.workspace = true
 tower-http.workspace = true
 utoipa.workspace = true

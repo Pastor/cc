@@ -4,6 +4,7 @@
 //! спецификации и описание без маршрута невозможны по построению, а не
 //! отлавливаются тестом задним числом.
 
+use crate::files;
 use crate::identities;
 use crate::observe::trace;
 use crate::problem::stamp;
@@ -48,6 +49,9 @@ fn versioned() -> (Router<State>, utoipa::openapi::OpenApi) {
         .routes(routes!(users::me))
         .routes(routes!(users::public_key))
         .routes(routes!(users::prelude))
+        .routes(routes!(files::create, files::all))
+        .routes(routes!(files::one, files::discard))
+        .routes(routes!(files::upload, files::download))
         .routes(routes!(sessions::open))
         .routes(routes!(identities::begin))
         .routes(routes!(identities::all, identities::attach))

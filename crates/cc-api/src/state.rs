@@ -2,8 +2,8 @@
 
 use cc_domain::Provider;
 use cc_storage::{
-    Authorizations, Blobs, Confirmations, Identities, Postbox, Sessions, Telegram, Throttle, Users,
-    Vk,
+    Authorizations, Blobs, Confirmations, Files, Identities, Postbox, Sessions, Telegram, Throttle,
+    Users, Vk,
 };
 use std::sync::Arc;
 
@@ -21,19 +21,26 @@ pub struct State {
 #[derive(Debug)]
 pub struct Stores {
     users: Users,
+    files: Arc<Files>,
     sessions: Arc<Sessions>,
-    blobs: Blobs,
+    blobs: Arc<Blobs>,
 }
 
 impl Stores {
     /// Собирает хранилища.
     ///
-    /// Сессии приходят разделяемыми: их же убирает по расписанию отдельная
-    /// задача сервера.
+    /// Сессии, файлы и шифротекст приходят разделяемыми: их же убирают по
+    /// расписанию отдельные задачи сервера.
     #[must_use]
-    pub const fn new(users: Users, sessions: Arc<Sessions>, blobs: Blobs) -> Self {
+    pub const fn new(
+        users: Users,
+        files: Arc<Files>,
+        sessions: Arc<Sessions>,
+        blobs: Arc<Blobs>,
+    ) -> Self {
         Self {
             users,
+            files,
             sessions,
             blobs,
         }
@@ -155,6 +162,12 @@ impl State {
     #[must_use]
     pub fn users(&self) -> &Users {
         &self.stores.users
+    }
+
+    /// Файлы.
+    #[must_use]
+    pub fn files(&self) -> &Files {
+        &self.stores.files
     }
 
     /// Сессии.
