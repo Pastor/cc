@@ -1,5 +1,6 @@
 //! Сборка маршрутов и слоёв.
 
+use crate::problem::stamp;
 use crate::state::State;
 use crate::version::negotiate;
 use axum::routing::get;
@@ -46,6 +47,7 @@ pub fn router(state: State, limits: Limits) -> Router {
         .merge(versioned)
         .with_state(state)
         .layer(PropagateRequestIdLayer::new(REQUEST_ID))
+        .layer(axum::middleware::from_fn(stamp))
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::with_status_code(
             http::StatusCode::SERVICE_UNAVAILABLE,

@@ -236,3 +236,27 @@ async fn service_route_ignores_version_header() {
         "служебный маршрут отверг запрос из-за версии контракта"
     );
 }
+
+#[tokio::test]
+async fn refusal_carries_request_identifier() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (_, body) = request_with(server.address(), "/api/files", "API-Version: 99\r\n").await;
+    server.stop().await.unwrap();
+    assert!(
+        body.contains("instance"),
+        "отказ не сослался на идентификатор обращения: инженер не найдёт его в журнале"
+    );
+}
+
+#[tokio::test]
+async fn successful_response_is_not_rewritten() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (_, body) = request(server.address(), "/api/files").await;
+    server.stop().await.unwrap();
+    assert!(
+        body.contains("\"items\""),
+        "успешный ответ изменён слоем отметки отказов"
+    );
+}
