@@ -155,7 +155,25 @@ async fn request_without_version_is_served() {
     server.stop().await.unwrap();
     assert_eq!(
         status, 200,
-        "запрос без заголовка версии отвергнут вместо обслуживания самой старой версией"
+        "запрос без заголовка версии отвергнут вместо обслуживания самой новой версией"
+    );
+}
+
+#[tokio::test]
+async fn request_without_version_gets_the_newest() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (_, body) = request(server.address(), "/api/files").await;
+    server.stop().await.unwrap();
+    let newest = cc_api::Version::SUPPORTED
+        .iter()
+        .map(|version| version.number())
+        .max()
+        .unwrap();
+    assert!(
+        body.to_lowercase()
+            .contains(&format!("api-version: {newest}")),
+        "запрос без заголовка обслужен не самой новой версией"
     );
 }
 
