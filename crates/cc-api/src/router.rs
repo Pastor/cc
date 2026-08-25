@@ -2,6 +2,7 @@
 
 use crate::problem::stamp;
 use crate::state::State;
+use crate::users;
 use crate::version::negotiate;
 use axum::routing::get;
 use axum::Router;
@@ -38,6 +39,10 @@ const REQUEST_ID: HeaderName = HeaderName::from_static("x-request-id");
 pub fn router(state: State, limits: Limits) -> Router {
     let versioned = Router::new()
         .route("/api/files", get(files))
+        .route("/api/users", axum::routing::post(users::enroll))
+        .route("/api/users/me", get(users::me))
+        .route("/api/users/{login}/public-key", get(users::public_key))
+        .route("/api/users/{login}/prelude", get(users::prelude))
         .layer(axum::middleware::from_fn(negotiate));
     let service = Router::new()
         .route("/health/live", get(live))

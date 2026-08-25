@@ -112,6 +112,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
+
+[[package]]
 name = "base64ct"
 version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -164,12 +170,15 @@ name = "cc-api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "base64",
+ "cc-crypto",
  "cc-domain",
  "cc-storage",
  "http",
  "serde",
  "serde_json",
  "thiserror",
+ "time",
  "tokio",
  "tower",
  "tower-http",
@@ -220,6 +229,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "base64",
  "cc-api",
  "cc-crypto",
  "cc-storage",
@@ -1165,7 +1175,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys",

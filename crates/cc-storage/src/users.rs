@@ -168,6 +168,22 @@ impl Users {
         Ok(())
     }
 
+    /// Находит пользователя по идентификатору.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Missing`], если такого пользователя нет.
+    pub async fn by_id(&self, id: cc_domain::UserId) -> Result<User> {
+        let found = {
+            let records = self.records.read().await;
+            records
+                .values()
+                .find(|record| record.user.id() == id)
+                .map(|record| record.user.clone())
+        };
+        found.ok_or(Error::Missing)
+    }
+
     /// Гасит использованный ключ восстановления, принимая новый.
     ///
     /// Ключ восстановления одноразовый: он мог быть подсмотрен в момент ввода,
