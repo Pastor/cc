@@ -8,10 +8,20 @@ repository.workspace = true
 
 [dependencies]
 cc-api.workspace = true
+cc-crypto.workspace = true
+cc-storage.workspace = true
 anyhow.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal"] }
+axum.workspace = true
+figment.workspace = true
+serde.workspace = true
+time.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal", "net", "time", "sync"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
+
+[dev-dependencies]
+figment = { workspace = true, features = ["test"] }
+tempfile.workspace = true
 
 [lints]
 workspace = true

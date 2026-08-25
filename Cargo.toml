@@ -42,6 +42,13 @@ uuid = { version = "1.25.0", default-features = false, features = ["v4", "std"] 
 time = { version = "0.3.55", default-features = false, features = ["std"] }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 tempfile = { version = "3.27.0", default-features = false }
+axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio", "query", "matched-path"] }
+tower = { version = "0.5.3", default-features = false }
+tower-http = { version = "0.7.0", default-features = false, features = ["limit", "timeout", "set-header", "request-id", "trace"] }
+serde = { version = "1.0.229", default-features = false, features = ["derive", "std"] }
+serde_json = { version = "1.0.151", default-features = false, features = ["std"] }
+figment = { version = "0.10.19", default-features = false, features = ["env", "toml"] }
+http = { version = "1", default-features = false }
 
 [profile.release]
 lto = "thin"
