@@ -66,7 +66,7 @@ async fn linked_identity_opens_a_session() {
     server
         .call(
             "POST",
-            "/api/users/me/identities",
+            "/api/users/me/external-identities",
             &token,
             Some(&widget("168000001", moment())),
         )
@@ -91,7 +91,7 @@ async fn external_session_leaves_keys_sealed() {
     server
         .call(
             "POST",
-            "/api/users/me/identities",
+            "/api/users/me/external-identities",
             &token,
             Some(&widget("168000002", moment())),
         )
@@ -138,7 +138,7 @@ async fn external_session_carries_no_wrapped_keys() {
     server
         .call(
             "POST",
-            "/api/users/me/identities",
+            "/api/users/me/external-identities",
             &token,
             Some(&widget("168000003", moment())),
         )
@@ -165,7 +165,12 @@ async fn replayed_widget_is_refused() {
     let token = server.signed_in(&unique_login("telegram-replay")).await;
     let data = widget("168000004", moment());
     server
-        .call("POST", "/api/users/me/identities", &token, Some(&data))
+        .call(
+            "POST",
+            "/api/users/me/external-identities",
+            &token,
+            Some(&data),
+        )
         .await;
     let response = server.call("POST", "/api/sessions", "", Some(&data)).await;
     let status = response.status();
@@ -198,7 +203,7 @@ async fn attaching_requires_a_session() {
     let response = server
         .call(
             "POST",
-            "/api/users/me/identities",
+            "/api/users/me/external-identities",
             "",
             Some(&widget("168000006", moment())),
         )
@@ -218,13 +223,13 @@ async fn attached_identity_is_listed() {
     server
         .call(
             "POST",
-            "/api/users/me/identities",
+            "/api/users/me/external-identities",
             &token,
             Some(&widget("168000007", moment())),
         )
         .await;
     let listed = server
-        .call("GET", "/api/users/me/identities", &token, None)
+        .call("GET", "/api/users/me/external-identities", &token, None)
         .await;
     let body = listed.body().to_owned();
     server.stop().await;
@@ -242,7 +247,7 @@ async fn identity_of_another_account_is_refused() {
     server
         .call(
             "POST",
-            "/api/users/me/identities",
+            "/api/users/me/external-identities",
             &first,
             Some(&widget("168000008", moment())),
         )
@@ -250,7 +255,7 @@ async fn identity_of_another_account_is_refused() {
     let response = server
         .call(
             "POST",
-            "/api/users/me/identities",
+            "/api/users/me/external-identities",
             &second,
             Some(&widget("168000008", moment() - 1)),
         )
@@ -270,13 +275,18 @@ async fn detached_identity_opens_no_session() {
     server
         .call(
             "POST",
-            "/api/users/me/identities",
+            "/api/users/me/external-identities",
             &token,
             Some(&widget("168000009", moment())),
         )
         .await;
     server
-        .call("DELETE", "/api/users/me/identities/telegram", &token, None)
+        .call(
+            "DELETE",
+            "/api/users/me/external-identities/telegram:168000009",
+            &token,
+            None,
+        )
         .await;
     let response = server
         .call(

@@ -94,6 +94,19 @@ impl ExternalIdentity {
     }
 }
 
+impl ExternalIdentity {
+    /// Разбирает личность из записи «провайдер:идентификатор».
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::UnknownProvider`] — провайдер не распознан;
+    /// - [`Error::EmptySubject`] — идентификатор пуст либо разделителя нет.
+    pub fn parse(text: &str) -> Result<Self> {
+        let (provider, subject) = text.split_once(':').ok_or(Error::EmptySubject)?;
+        Self::new(Provider::parse(provider)?, subject)
+    }
+}
+
 impl fmt::Display for ExternalIdentity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.provider, self.subject)
@@ -159,6 +172,35 @@ mod tests {
                 .subject(),
             "168123456",
             "идентификатор личности искажён при создании"
+        );
+    }
+
+    #[test]
+    fn identity_survives_its_own_record() {
+        let identity = ExternalIdentity::new(Provider::Vk, "7654321").unwrap();
+        assert_eq!(
+            ExternalIdentity::parse(&identity.to_string()).unwrap(),
+            identity,
+            "личность не пережила запись и обратный разбор"
+        );
+    }
+
+    #[test]
+    fn record_without_separator_is_rejected() {
+        assert!(
+            matches!(ExternalIdentity::parse("vk"), Err(Error::EmptySubject)),
+            "запись без разделителя принята за личность"
+        );
+    }
+
+    #[test]
+    fn record_of_unknown_provider_is_rejected() {
+        assert!(
+            matches!(
+                ExternalIdentity::parse("facebook:42"),
+                Err(Error::UnknownProvider { .. })
+            ),
+            "запись неизвестного провайдера принята за личность"
         );
     }
 

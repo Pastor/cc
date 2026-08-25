@@ -18,7 +18,7 @@ use crate::state::State;
 use axum::extract::{Path, Query, State as Extract};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use cc_domain::Provider;
+use cc_domain::{ExternalIdentity, Provider};
 use cc_storage::{Code, Entrance as _, Ticket, Widget};
 use http::header::LOCATION;
 use http::StatusCode;
@@ -175,7 +175,7 @@ pub(crate) async fn callback(
 /// `401` — сессия отсутствует либо истекла.
 #[utoipa::path(
     get,
-    path = "/api/users/me/identities",
+    path = "/api/users/me/external-identities",
     tag = "users",
     responses(
         (status = 200, description = "Перечень привязанных личностей", body = Vec<Linked>),
@@ -214,7 +214,7 @@ pub(crate) async fn all(
 /// - `409` — личность уже привязана к другой учётной записи.
 #[utoipa::path(
     post,
-    path = "/api/users/me/identities",
+    path = "/api/users/me/external-identities",
     tag = "users",
     request_body = Attachment,
     responses(
@@ -254,7 +254,7 @@ pub(crate) async fn attach(
         .identities()
         .link(identity.clone(), session.session().user())
         .await?;
-    let location = format!("/api/users/me/identities/{}", identity.provider());
+    let location = format!("/api/users/me/external-identities/{}", identity.provider());
     let body = Linked {
         provider: identity.provider().name().to_owned(),
         subject: identity.subject().to_owned(),
@@ -273,16 +273,16 @@ pub(crate) async fn attach(
 /// - `404` — личность не привязана к этой записи.
 #[utoipa::path(
     delete,
-    path = "/api/users/me/identities/{provider}",
+    path = "/api/users/me/external-identities/{id}",
     tag = "users",
     responses(
         (status = 204, description = "Личность отвязана"),
         (status = 401, description = "Сессия отсутствует либо истекла"),
         (status = 404, description = "Личность не привязана к этой записи"),
-        (status = 422, description = "Провайдер неизвестен"),
+        (status = 422, description = "Запись личности неразбираема"),
     ),
     params(
-        ("provider" = String, Path, description = "Название провайдера"),
+        ("id" = String, Path, description = "Личность в записи «провайдер:идентификатор»"),
         ("API-Version" = Option<u16>, Header, description = "Версия контракта"),
     ),
     security(("bearer" = [])),
@@ -290,19 +290,13 @@ pub(crate) async fn attach(
 pub(crate) async fn detach(
     Extract(state): Extract<State>,
     session: Authenticated,
-    Path(provider): Path<String>,
+    Path(id): Path<String>,
 ) -> Result<StatusCode, Failure> {
-    let provider = Provider::parse(&provider)?;
-    let user = session.session().user();
-    let linked = state.federation().identities().of(user).await;
-    let identity = linked
-        .into_iter()
-        .find(|identity| identity.provider() == provider)
-        .ok_or(Failure::Storage(cc_storage::Error::Missing))?;
+    let identity = ExternalIdentity::parse(&id)?;
     state
         .federation()
         .identities()
-        .unlink(&identity, user)
+        .unlink(&identity, session.session().user())
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
