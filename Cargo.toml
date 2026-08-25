@@ -55,6 +55,7 @@ serde_json = { version = "1.0.151", default-features = false, features = ["std"]
 figment = { version = "0.10.19", default-features = false, features = ["env", "toml"] }
 http = { version = "1", default-features = false }
 base64 = { version = "0.23.1", default-features = false, features = ["alloc"] }
+oauth2 = { version = "5.0.0", default-features = false, features = ["reqwest", "rustls-tls"] }
 utoipa = { version = "5.5.0", default-features = false, features = ["axum_extras", "macros"] }
 utoipa-axum = { version = "0.2.0", default-features = false }
 utoipa-swagger-ui = { version = "9.0.2", default-features = false, features = ["axum", "vendored"] }
