@@ -21,7 +21,7 @@ pub use content::{
     plaintext_len, BlockSize, Cipher, Header, BLOCK_SIZE_MAX, BLOCK_SIZE_MIN, FORMAT_VERSION,
     HEADER_LEN,
 };
-pub use digest::{CiphertextHash, TagLabel, HASH_LEN};
+pub use digest::{sha256, CiphertextHash, Signature, TagLabel, HASH_LEN};
 pub use error::{Error, Result};
 pub use keys::{
     AccountKey, AuthHash, ContentKey, EncryptionKey, MasterKey, MetadataKey, RecoveryKey, Salt,

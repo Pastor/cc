@@ -12,6 +12,7 @@ mod tests {
         reason = "в тесте отказ обязан ронять тест, а не обрабатываться"
     )]
 
+    use crate::digest::{sha256, Signature};
     use hkdf::Hkdf;
     use sha2::Sha256;
     use x25519_dalek::{PublicKey, StaticSecret};
@@ -85,6 +86,62 @@ mod tests {
             bytes::<32>("077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5")
                 .to_vec(),
             "промежуточный ключ HKDF разошёлся с вектором RFC 5869"
+        );
+    }
+
+    /// FIPS 180-4, приложение B.1: SHA-256 от «abc».
+    #[test]
+    fn sha256_matches_fips180() {
+        assert_eq!(
+            sha256(b"abc"),
+            bytes::<32>("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"),
+            "хеш разошёлся с вектором FIPS 180-4"
+        );
+    }
+
+    /// RFC 4231, случай 1: HMAC-SHA-256 от «Hi There».
+    #[test]
+    fn hmac_sha256_matches_rfc4231() {
+        assert_eq!(
+            *Signature::of(&[0x0b; 20], b"Hi There").as_bytes(),
+            bytes::<32>("b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"),
+            "код подлинности разошёлся с вектором RFC 4231"
+        );
+    }
+
+    /// RFC 4231, случай 2: ключ короче блока, сообщение — «what do ya want for nothing?».
+    #[test]
+    fn hmac_sha256_with_short_key_matches_rfc4231() {
+        assert_eq!(
+            *Signature::of(b"Jefe", b"what do ya want for nothing?").as_bytes(),
+            bytes::<32>("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"),
+            "код подлинности с коротким ключом разошёлся с вектором RFC 4231"
+        );
+    }
+
+    #[test]
+    fn signature_matches_its_own_bytes() {
+        let signature = Signature::of(b"key", b"message");
+        assert!(
+            signature.matches(signature.as_bytes()),
+            "подпись не совпала сама с собой"
+        );
+    }
+
+    #[test]
+    fn signature_rejects_a_foreign_value() {
+        assert!(
+            !Signature::of(b"key", b"message").matches(&[0_u8; 32]),
+            "подпись совпала с посторонним значением"
+        );
+    }
+
+    #[test]
+    fn signature_rejects_a_truncated_value() {
+        let signature = Signature::of(b"key", b"message");
+        assert!(
+            !signature.matches(&signature.as_bytes()[..31]),
+            "усечённое значение принято за подпись"
         );
     }
 }

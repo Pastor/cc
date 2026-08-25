@@ -3,6 +3,7 @@
 use crate::keys::TagKey;
 use hmac::{Hmac, KeyInit, Mac};
 use sha2::{Digest, Sha256};
+use subtle::ConstantTimeEq as _;
 
 /// Длина хеша SHA-256.
 pub const HASH_LEN: usize = 32;
@@ -64,6 +65,60 @@ impl TagLabel {
     }
 
     /// Отдаёт метку: она хранится на сервере.
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; HASH_LEN] {
+        &self.0
+    }
+}
+
+/// Вычисляет SHA-256.
+///
+/// Примитив нужен там, где хеш задан чужим протоколом и доменную метку в него
+/// добавить нельзя: PKCE считает `code_challenge`, Telegram выводит ключ
+/// подписи из токена бота.
+#[must_use]
+pub fn sha256(bytes: &[u8]) -> [u8; HASH_LEN] {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    hasher.finalize().into()
+}
+
+/// Код подлинности сообщения — HMAC-SHA256 с заданным ключом.
+///
+/// В отличие от [`TagLabel`], доменной метки не добавляет: формат сообщения
+/// задан чужим протоколом.
+#[derive(Clone, Copy, Debug)]
+pub struct Signature([u8; HASH_LEN]);
+
+impl Signature {
+    /// Вычисляет код подлинности сообщения.
+    ///
+    /// # Panics
+    ///
+    /// Не паникует: HMAC принимает ключ любой длины, поэтому проверка длины
+    /// внутри отказать не может.
+    #[allow(
+        clippy::expect_used,
+        reason = "HMAC принимает ключ любой длины: InvalidLength для него недостижим"
+    )]
+    #[must_use]
+    pub fn of(key: &[u8], message: &[u8]) -> Self {
+        let mut mac = <Hmac<Sha256> as KeyInit>::new_from_slice(key)
+            .expect("INVARIANT: HMAC принимает ключ любой длины");
+        mac.update(message);
+        Self(mac.finalize().into_bytes().into())
+    }
+
+    /// Сравнивает с предъявленным значением в постоянном времени.
+    ///
+    /// Сравнение байт за байтом с ранним выходом выдаёт длину совпавшего
+    /// префикса и позволяет подобрать подпись за линейное число попыток.
+    #[must_use]
+    pub fn matches(&self, presented: &[u8]) -> bool {
+        presented.len() == HASH_LEN && self.0.ct_eq(presented).into()
+    }
+
+    /// Отдаёт код подлинности.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; HASH_LEN] {
         &self.0
