@@ -1,6 +1,6 @@
 //! Хранилище пользователей.
 
-use crate::credentials::{Challenge, Credentials, Wrapped};
+use crate::credentials::{Challenge, Credentials, Registration, Wrapped};
 use crate::error::{Error, Result};
 use cc_crypto::{decoy_salt, AuthHash, KdfParams, Salt, StoredAuth};
 use cc_domain::{User, UserId, Username};
@@ -59,17 +59,21 @@ impl Users {
     pub async fn register(
         &self,
         login: Username,
-        challenge: Challenge,
         auth: &AuthHash,
-        public: cc_crypto::PublicKey,
-        wrapped: Wrapped,
+        registration: Registration,
         now: OffsetDateTime,
     ) -> Result<User> {
         let stored = self.harden(auth)?;
         let user = User::new(UserId::generate(), login.clone(), now);
         let record = Record {
             user: user.clone(),
-            credentials: Credentials::new(challenge, stored, public, wrapped),
+            credentials: Credentials::new(
+                registration.challenge().clone(),
+                stored,
+                *registration.public(),
+                registration.wrapped().clone(),
+                *registration.recovery(),
+            ),
         };
         {
             let mut records = self.records.write().await;
@@ -160,6 +164,38 @@ impl Users {
             .credentials
             .clone()
             .with_password(challenge, stored, wrapped);
+        drop(records);
+        Ok(())
+    }
+
+    /// Гасит использованный ключ восстановления, принимая новый.
+    ///
+    /// Ключ восстановления одноразовый: он мог быть подсмотрен в момент ввода,
+    /// поэтому после успешного восстановления выдаётся новый.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Missing`] — логин неизвестен либо предъявлен не тот отпечаток.
+    pub async fn rotate_recovery(
+        &self,
+        login: &Username,
+        presented: &[u8; 32],
+        account_by_recovery: Vec<u8>,
+        recovery: [u8; 32],
+    ) -> Result<()> {
+        let mut records = self.records.write().await;
+        let Some(record) = records.get_mut(login) else {
+            return Err(Error::Missing);
+        };
+        if record.credentials.recovery() != presented {
+            return Err(Error::Missing);
+        }
+        let wrapped = record
+            .credentials
+            .wrapped()
+            .clone()
+            .re_recovered(account_by_recovery);
+        record.credentials = record.credentials.clone().with_recovery(wrapped, recovery);
         drop(records);
         Ok(())
     }

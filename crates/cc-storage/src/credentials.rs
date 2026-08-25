@@ -83,6 +83,18 @@ impl Wrapped {
             ..self
         }
     }
+
+    /// Возвращает обёртки с заменённой обёрткой восстановления.
+    ///
+    /// Использованный ключ восстановления гасится выдачей нового: он мог быть
+    /// подсмотрен в момент ввода.
+    #[must_use]
+    pub fn re_recovered(self, account_by_recovery: Vec<u8>) -> Self {
+        Self {
+            account_by_recovery,
+            ..self
+        }
+    }
 }
 
 /// Всё, что сервер хранит о способе входа пользователя.
@@ -92,6 +104,7 @@ pub struct Credentials {
     stored: StoredAuth,
     public: PublicKey,
     wrapped: Wrapped,
+    recovery: [u8; 32],
 }
 
 impl Credentials {
@@ -102,12 +115,33 @@ impl Credentials {
         stored: StoredAuth,
         public: PublicKey,
         wrapped: Wrapped,
+        recovery: [u8; 32],
     ) -> Self {
         Self {
             challenge,
             stored,
             public,
             wrapped,
+            recovery,
+        }
+    }
+
+    /// Отпечаток действующего ключа восстановления.
+    ///
+    /// Хранится отпечаток, а не ключ: по нему можно убедиться, что введён
+    /// именно свой ключ, но развернуть им ничего нельзя.
+    #[must_use]
+    pub const fn recovery(&self) -> &[u8; 32] {
+        &self.recovery
+    }
+
+    /// Возвращает учётные данные с новым ключом восстановления.
+    #[must_use]
+    pub fn with_recovery(self, wrapped: Wrapped, recovery: [u8; 32]) -> Self {
+        Self {
+            wrapped,
+            recovery,
+            ..self
         }
     }
 
@@ -144,5 +178,59 @@ impl Credentials {
             wrapped,
             ..self
         }
+    }
+}
+
+/// Заявка на регистрацию: всё, что клиент присылает при создании учётной записи.
+///
+/// Тип существует потому, что восемь отдельных аргументов у одной функции —
+/// признак, что у них есть общее имя, которое не названо.
+#[derive(Clone, Debug)]
+pub struct Registration {
+    challenge: Challenge,
+    public: PublicKey,
+    wrapped: Wrapped,
+    recovery: [u8; 32],
+}
+
+impl Registration {
+    /// Собирает заявку.
+    #[must_use]
+    pub const fn new(
+        challenge: Challenge,
+        public: PublicKey,
+        wrapped: Wrapped,
+        recovery: [u8; 32],
+    ) -> Self {
+        Self {
+            challenge,
+            public,
+            wrapped,
+            recovery,
+        }
+    }
+
+    /// Параметры выведения ключа.
+    #[must_use]
+    pub const fn challenge(&self) -> &Challenge {
+        &self.challenge
+    }
+
+    /// Открытый ключ.
+    #[must_use]
+    pub const fn public(&self) -> &PublicKey {
+        &self.public
+    }
+
+    /// Обёртки ключей.
+    #[must_use]
+    pub const fn wrapped(&self) -> &Wrapped {
+        &self.wrapped
+    }
+
+    /// Отпечаток ключа восстановления.
+    #[must_use]
+    pub const fn recovery(&self) -> &[u8; 32] {
+        &self.recovery
     }
 }

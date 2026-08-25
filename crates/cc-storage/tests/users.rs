@@ -8,7 +8,7 @@
 
 use cc_crypto::{AuthHash, KdfParams, KeyPair, Salt};
 use cc_domain::Username;
-use cc_storage::{Challenge, Users, Wrapped};
+use cc_storage::{Challenge, Registration, Users, Wrapped};
 use std::sync::Arc;
 use time::OffsetDateTime;
 
@@ -36,10 +36,13 @@ async fn registered(store: &Users, name: &str, auth: &AuthHash) {
     store
         .register(
             login(name),
-            challenge(),
             auth,
-            KeyPair::generate().public(),
-            wrapped(),
+            Registration::new(
+                challenge(),
+                KeyPair::generate().public(),
+                wrapped(),
+                [9; 32],
+            ),
             OffsetDateTime::UNIX_EPOCH,
         )
         .await
@@ -73,10 +76,13 @@ async fn taken_login_is_rejected() {
     let again = store
         .register(
             login("user@example.com"),
-            challenge(),
             &AuthHash::new([8; 32]),
-            KeyPair::generate().public(),
-            wrapped(),
+            Registration::new(
+                challenge(),
+                KeyPair::generate().public(),
+                wrapped(),
+                [9; 32],
+            ),
             OffsetDateTime::UNIX_EPOCH,
         )
         .await;
@@ -92,10 +98,13 @@ async fn concurrent_registration_succeeds_once() {
             store
                 .register(
                     login("user@example.com"),
-                    challenge(),
                     &AuthHash::new([index; 32]),
-                    KeyPair::generate().public(),
-                    wrapped(),
+                    Registration::new(
+                        challenge(),
+                        KeyPair::generate().public(),
+                        wrapped(),
+                        [9; 32],
+                    ),
                     OffsetDateTime::UNIX_EPOCH,
                 )
                 .await
@@ -275,5 +284,35 @@ async fn stored_form_differs_from_presented_hash() {
             .windows(32)
             .any(|window| window == auth.expose()),
         "аутентификационный хеш встречается в хранимых данных в исходном виде"
+    );
+}
+
+#[tokio::test]
+async fn used_recovery_key_is_replaced() {
+    let store = users();
+    registered(&store, "user@example.com", &AuthHash::new([7; 32])).await;
+    store
+        .rotate_recovery(&login("user@example.com"), &[9; 32], vec![5; 72], [10; 32])
+        .await
+        .unwrap();
+    let again = store
+        .rotate_recovery(&login("user@example.com"), &[9; 32], vec![6; 72], [11; 32])
+        .await;
+    assert!(
+        again.is_err(),
+        "использованный ключ восстановления продолжает действовать"
+    );
+}
+
+#[tokio::test]
+async fn recovery_rotation_requires_matching_fingerprint() {
+    let store = users();
+    registered(&store, "user@example.com", &AuthHash::new([7; 32])).await;
+    let attempt = store
+        .rotate_recovery(&login("user@example.com"), &[0; 32], vec![5; 72], [10; 32])
+        .await;
+    assert!(
+        attempt.is_err(),
+        "ключ восстановления заменён по чужому отпечатку"
     );
 }

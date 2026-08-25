@@ -9,6 +9,6 @@ mod error;
 mod users;
 
 pub use confirmation::{Confirmations, LIFETIME, MAX_ATTEMPTS};
-pub use credentials::{Challenge, Credentials, Wrapped};
+pub use credentials::{Challenge, Credentials, Registration, Wrapped};
 pub use error::{Error, Result};
 pub use users::Users;

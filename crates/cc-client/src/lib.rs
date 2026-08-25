@@ -8,9 +8,11 @@
 mod account;
 mod content;
 mod error;
+mod recovery;
 
 pub use account::{
     accept, change_password, enroll, grant, recover, unlock, Enrollment, Identity, WrappedKeys,
 };
 pub use content::{decrypt_name, encrypt_name, Reader, Writer};
 pub use error::{Error, Result};
+pub use recovery::{read, write, Fingerprint};
