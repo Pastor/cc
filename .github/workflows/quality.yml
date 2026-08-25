@@ -60,6 +60,11 @@ jobs:
       - name: Отсутствие unwrap и expect на рабочих путях
         run: ./scripts/no-unwrap.sh
 
+      - name: Сборка замеров
+        # Замеры не прогоняются в конвейере: их значения зависят от машины, а
+        # сборка ловит расхождение с изменившимся API.
+        run: cargo bench --workspace --no-run
+
   wasm:
     name: Сборка под WebAssembly
     runs-on: ubuntu-latest

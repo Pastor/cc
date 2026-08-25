@@ -44,6 +44,7 @@ hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 uuid = { version = "1.25.0", default-features = false, features = ["v4", "std"] }
 time = { version = "0.3.55", default-features = false, features = ["std"] }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
+criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
 tempfile = { version = "3.27.0", default-features = false }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio", "query", "matched-path"] }
 tower = { version = "0.5.3", default-features = false }
