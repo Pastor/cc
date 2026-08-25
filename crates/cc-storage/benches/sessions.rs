@@ -10,7 +10,7 @@
               прогон, а не маскироваться"
 )]
 
-use cc_domain::{Rights, UserId};
+use cc_domain::{Scope, UserId};
 use cc_storage::{Sessions, Token};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use time::{Duration, OffsetDateTime};
@@ -24,7 +24,7 @@ fn populated(runtime: &tokio::runtime::Runtime, count: usize) -> (Sessions, Toke
             let (issued, _) = sessions
                 .open(
                     UserId::generate(),
-                    Rights::all(),
+                    Scope::full(),
                     OffsetDateTime::UNIX_EPOCH,
                 )
                 .await;

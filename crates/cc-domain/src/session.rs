@@ -57,27 +57,86 @@ impl Timing {
     }
 }
 
-/// Сессия.
+/// Доступность ключей в сессии.
 ///
-/// Признак «ключи развёрнуты» отличает вход по паролю от входа через внешнего
-/// провайдера: во втором случае у клиента нет ключа шифрования, и содержимое
-/// файлов ему недоступно (`TODO.md`, раздел 4.3).
+/// Признак отличает вход по паролю от входа через внешнего провайдера: во
+/// втором случае у клиента нет ключа шифрования, и содержимое файлов ему
+/// недоступно (`TODO.md`, раздел 4.3).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Keys {
+    /// Ключи не развёрнуты: доступны профиль и перечень, но не содержимое.
+    Sealed,
+    /// Ключи развёрнуты: клиент предъявил пароль либо ключ восстановления.
+    Unwrapped,
+}
+
+impl Keys {
+    /// Отвечает, развёрнуты ли ключи.
+    #[must_use]
+    pub const fn unwrapped(self) -> bool {
+        matches!(self, Self::Unwrapped)
+    }
+}
+
+/// Объём полномочий сессии: права и доступность ключей.
+///
+/// Два измерения разделены намеренно: право читать файл и способность его
+/// расшифровать — разные вещи, и внешний вход даёт первое без второго.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Scope {
+    rights: Rights,
+    keys: Keys,
+}
+
+impl Scope {
+    /// Заводит объём полномочий.
+    #[must_use]
+    pub const fn new(rights: Rights, keys: Keys) -> Self {
+        Self { rights, keys }
+    }
+
+    /// Полномочия входа по паролю: все права при развёрнутых ключах.
+    #[must_use]
+    pub const fn full() -> Self {
+        Self::new(Rights::all(), Keys::Unwrapped)
+    }
+
+    /// Полномочия внешнего входа: все права при неразвёрнутых ключах.
+    #[must_use]
+    pub const fn external() -> Self {
+        Self::new(Rights::all(), Keys::Sealed)
+    }
+
+    /// Права.
+    #[must_use]
+    pub const fn rights(self) -> Rights {
+        self.rights
+    }
+
+    /// Доступность ключей.
+    #[must_use]
+    pub const fn keys(self) -> Keys {
+        self.keys
+    }
+}
+
+/// Сессия.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Session {
     id: SessionId,
     user: UserId,
-    rights: Rights,
+    scope: Scope,
     timing: Timing,
 }
 
 impl Session {
     /// Заводит сессию.
     #[must_use]
-    pub const fn new(id: SessionId, user: UserId, rights: Rights, timing: Timing) -> Self {
+    pub const fn new(id: SessionId, user: UserId, scope: Scope, timing: Timing) -> Self {
         Self {
             id,
             user,
-            rights,
+            scope,
             timing,
         }
     }
@@ -103,10 +162,10 @@ impl Session {
         self.user
     }
 
-    /// Права сессии.
+    /// Объём полномочий сессии.
     #[must_use]
-    pub const fn rights(&self) -> Rights {
-        self.rights
+    pub const fn scope(&self) -> Scope {
+        self.scope
     }
 
     /// Времена.
@@ -124,9 +183,8 @@ mod tests {
         reason = "в тесте отказ обязан ронять тест, а не обрабатываться"
     )]
 
-    use super::{Session, Timing};
+    use super::{Keys, Scope, Session, Timing};
     use crate::id::{SessionId, UserId};
-    use crate::rights::Rights;
     use time::{Duration, OffsetDateTime};
 
     fn timing() -> Timing {
@@ -140,7 +198,7 @@ mod tests {
         Session::new(
             SessionId::generate(),
             UserId::generate(),
-            Rights::all(),
+            Scope::full(),
             timing(),
         )
     }
@@ -170,6 +228,39 @@ mod tests {
             session().touched(moment).timing().seen_at(),
             moment,
             "обращение не отмечено во временах сессии"
+        );
+    }
+
+    #[test]
+    fn password_entry_unwraps_keys() {
+        assert!(
+            Scope::full().keys().unwrapped(),
+            "вход по паролю оставил ключи не развёрнутыми"
+        );
+    }
+
+    #[test]
+    fn external_entry_leaves_keys_sealed() {
+        assert!(
+            !Scope::external().keys().unwrapped(),
+            "внешний вход развернул ключи, которых у него нет"
+        );
+    }
+
+    #[test]
+    fn external_entry_keeps_rights() {
+        assert_eq!(
+            Scope::external().rights(),
+            Scope::full().rights(),
+            "внешний вход урезал права вместо доступности ключей"
+        );
+    }
+
+    #[test]
+    fn sealed_keys_are_not_unwrapped() {
+        assert!(
+            !Keys::Sealed.unwrapped(),
+            "нераскрытые ключи признаны развёрнутыми"
         );
     }
 

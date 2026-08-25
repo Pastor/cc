@@ -21,7 +21,7 @@ use axum::Json;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
 use cc_crypto::{AuthHash, KEY_LEN};
-use cc_domain::{Rights, Username};
+use cc_domain::{Scope, Username};
 use http::header::LOCATION;
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -133,7 +133,7 @@ pub(crate) async fn open(
             return Err(failure.into());
         }
     };
-    let (token, session) = state.sessions().open(user.id(), Rights::all(), now).await;
+    let (token, session) = state.sessions().open(user.id(), Scope::full(), now).await;
     let location = format!("/api/sessions/{}", session.id());
     let body = Entry {
         session: Issued {

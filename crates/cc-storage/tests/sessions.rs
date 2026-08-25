@@ -6,10 +6,14 @@
     reason = "в тесте отказ обязан ронять тест, а не обрабатываться"
 )]
 
-use cc_domain::{Rights, UserId};
+use cc_domain::{Keys, Rights, Scope, UserId};
 use cc_storage::{Sessions, Token};
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
+
+const fn read_only() -> Scope {
+    Scope::new(Rights::read_only(), Keys::Unwrapped)
+}
 
 fn sessions() -> Sessions {
     Sessions::new(Duration::hours(1))
@@ -22,7 +26,7 @@ const fn now() -> OffsetDateTime {
 #[tokio::test]
 async fn opened_session_resolves_by_token() {
     let store = sessions();
-    let (token, _) = store.open(UserId::generate(), Rights::all(), now()).await;
+    let (token, _) = store.open(UserId::generate(), Scope::full(), now()).await;
     assert!(
         store.resolve(&token, now()).await.is_ok(),
         "выданный токен не опознан"
@@ -40,7 +44,7 @@ async fn unknown_token_does_not_resolve() {
 #[tokio::test]
 async fn expired_session_does_not_resolve() {
     let store = sessions();
-    let (token, _) = store.open(UserId::generate(), Rights::all(), now()).await;
+    let (token, _) = store.open(UserId::generate(), Scope::full(), now()).await;
     assert!(
         store
             .resolve(&token, now() + Duration::hours(2))
@@ -53,7 +57,7 @@ async fn expired_session_does_not_resolve() {
 #[tokio::test]
 async fn closed_session_does_not_resolve() {
     let store = sessions();
-    let (token, _) = store.open(UserId::generate(), Rights::all(), now()).await;
+    let (token, _) = store.open(UserId::generate(), Scope::full(), now()).await;
     store.close(&token).await;
     assert!(
         store.resolve(&token, now()).await.is_err(),
@@ -64,7 +68,7 @@ async fn closed_session_does_not_resolve() {
 #[tokio::test]
 async fn closing_is_idempotent() {
     let store = sessions();
-    let (token, _) = store.open(UserId::generate(), Rights::all(), now()).await;
+    let (token, _) = store.open(UserId::generate(), Scope::full(), now()).await;
     store.close(&token).await;
     store.close(&token).await;
     assert_eq!(
@@ -78,8 +82,8 @@ async fn closing_is_idempotent() {
 async fn repeated_login_issues_new_token() {
     let store = sessions();
     let user = UserId::generate();
-    let (first, _) = store.open(user, Rights::all(), now()).await;
-    let (second, _) = store.open(user, Rights::read_only(), now()).await;
+    let (first, _) = store.open(user, Scope::full(), now()).await;
+    let (second, _) = store.open(user, read_only(), now()).await;
     assert!(
         !Sessions::same(&first, &second),
         "повторный вход вернул прежний токен вместо нового"
@@ -90,10 +94,10 @@ async fn repeated_login_issues_new_token() {
 async fn repeated_login_applies_requested_rights() {
     let store = sessions();
     let user = UserId::generate();
-    let (_, _) = store.open(user, Rights::all(), now()).await;
-    let (token, _) = store.open(user, Rights::read_only(), now()).await;
+    let (_, _) = store.open(user, Scope::full(), now()).await;
+    let (token, _) = store.open(user, read_only(), now()).await;
     assert_eq!(
-        store.resolve(&token, now()).await.unwrap().rights(),
+        store.resolve(&token, now()).await.unwrap().scope().rights(),
         Rights::read_only(),
         "запрошенный набор прав проигнорирован при повторном входе"
     );
@@ -102,7 +106,7 @@ async fn repeated_login_applies_requested_rights() {
 #[tokio::test]
 async fn resolving_records_the_moment() {
     let store = sessions();
-    let (token, _) = store.open(UserId::generate(), Rights::all(), now()).await;
+    let (token, _) = store.open(UserId::generate(), Scope::full(), now()).await;
     let moment = now() + Duration::minutes(5);
     assert_eq!(
         store
@@ -119,7 +123,7 @@ async fn resolving_records_the_moment() {
 #[tokio::test]
 async fn sweeping_removes_expired_sessions() {
     let store = sessions();
-    let _ = store.open(UserId::generate(), Rights::all(), now()).await;
+    let _ = store.open(UserId::generate(), Scope::full(), now()).await;
     store.sweep(now() + Duration::hours(2)).await;
     assert_eq!(store.count().await, 0, "истёкшая сессия пережила чистку");
 }
@@ -127,7 +131,7 @@ async fn sweeping_removes_expired_sessions() {
 #[tokio::test]
 async fn sweeping_keeps_live_sessions() {
     let store = sessions();
-    let _ = store.open(UserId::generate(), Rights::all(), now()).await;
+    let _ = store.open(UserId::generate(), Scope::full(), now()).await;
     store.sweep(now()).await;
     assert_eq!(store.count().await, 1, "действующая сессия удалена чисткой");
 }
@@ -136,8 +140,8 @@ async fn sweeping_keeps_live_sessions() {
 async fn closing_others_keeps_the_current_session() {
     let store = sessions();
     let user = UserId::generate();
-    let (token, session) = store.open(user, Rights::all(), now()).await;
-    let _ = store.open(user, Rights::all(), now()).await;
+    let (token, session) = store.open(user, Scope::full(), now()).await;
+    let _ = store.open(user, Scope::full(), now()).await;
     store.close_others(user, session.id()).await;
     assert!(
         store.resolve(&token, now()).await.is_ok(),
@@ -149,8 +153,8 @@ async fn closing_others_keeps_the_current_session() {
 async fn closing_others_closes_the_rest() {
     let store = sessions();
     let user = UserId::generate();
-    let (_, session) = store.open(user, Rights::all(), now()).await;
-    let _ = store.open(user, Rights::all(), now()).await;
+    let (_, session) = store.open(user, Scope::full(), now()).await;
+    let _ = store.open(user, Scope::full(), now()).await;
     store.close_others(user, session.id()).await;
     assert_eq!(
         store.count().await,
@@ -163,9 +167,9 @@ async fn closing_others_closes_the_rest() {
 async fn closing_others_spares_other_users() {
     let store = sessions();
     let user = UserId::generate();
-    let (token, _) = store.open(user, Rights::all(), now()).await;
+    let (token, _) = store.open(user, Scope::full(), now()).await;
     let other = UserId::generate();
-    let (_, session) = store.open(other, Rights::all(), now()).await;
+    let (_, session) = store.open(other, Scope::full(), now()).await;
     store.close_others(other, session.id()).await;
     assert!(
         store.resolve(&token, now()).await.is_ok(),
@@ -177,7 +181,7 @@ async fn closing_others_spares_other_users() {
 async fn concurrent_close_and_resolve_never_panics() {
     let store = Arc::new(sessions());
     let user = UserId::generate();
-    let (token, _) = store.open(user, Rights::all(), now()).await;
+    let (token, _) = store.open(user, Scope::full(), now()).await;
     let closing = {
         let store = Arc::clone(&store);
         let token = token.clone();
@@ -208,8 +212,8 @@ async fn token_is_not_printed_in_debug_output() {
 async fn session_identifier_is_unique_per_login() {
     let store = sessions();
     let user = UserId::generate();
-    let (_, first) = store.open(user, Rights::all(), now()).await;
-    let (_, second) = store.open(user, Rights::all(), now()).await;
+    let (_, first) = store.open(user, Scope::full(), now()).await;
+    let (_, second) = store.open(user, Scope::full(), now()).await;
     assert!(
         first.id() != second.id(),
         "два входа получили одинаковый идентификатор сессии"

@@ -5,7 +5,7 @@
 
 use crate::error::{Error, Result};
 use cc_crypto::CiphertextHash;
-use cc_domain::{Rights, Session, SessionId, Timing, UserId};
+use cc_domain::{Scope, Session, SessionId, Timing, UserId};
 use std::collections::HashMap;
 use subtle::ConstantTimeEq as _;
 use time::{Duration, OffsetDateTime};
@@ -83,17 +83,12 @@ impl Sessions {
     ///
     /// Каждый вход выпускает новую сессию: прежняя реализация возвращала старый
     /// токен, игнорируя запрошенный набор прав.
-    pub async fn open(
-        &self,
-        user: UserId,
-        rights: Rights,
-        now: OffsetDateTime,
-    ) -> (Token, Session) {
+    pub async fn open(&self, user: UserId, scope: Scope, now: OffsetDateTime) -> (Token, Session) {
         let token = Token::generate();
         let session = Session::new(
             SessionId::generate(),
             user,
-            rights,
+            scope,
             Timing::new(now, now + self.lifetime),
         );
         let mut sessions = self.by_digest.write().await;
