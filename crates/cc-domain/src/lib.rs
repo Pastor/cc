@@ -6,6 +6,7 @@
 //!
 //! Модель данных описана в `TODO.md`, раздел 3.
 
+mod access;
 mod error;
 mod file;
 mod hash;
@@ -16,6 +17,7 @@ mod session;
 mod user;
 mod username;
 
+pub use access::{permit, permit_grant, rights, visible, Claimant};
 pub use error::{Error, Result};
 pub use file::{Content, File, Grant, Link, Subject};
 pub use hash::ContentHash;
