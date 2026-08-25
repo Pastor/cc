@@ -137,6 +137,15 @@ impl Sessions {
         drop(sessions);
     }
 
+    /// Закрывает конкретную сессию пользователя.
+    ///
+    /// Чужую сессию закрыть нельзя: проверка по пользователю обязательна.
+    pub async fn close_by_id(&self, user: UserId, target: SessionId) {
+        let mut sessions = self.by_digest.write().await;
+        sessions.retain(|_, session| session.user() != user || session.id() != target);
+        drop(sessions);
+    }
+
     /// Закрывает все сессии пользователя, кроме указанной.
     ///
     /// Применяется при смене пароля: прочие устройства обязаны войти заново.

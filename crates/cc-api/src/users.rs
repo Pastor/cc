@@ -205,22 +205,6 @@ fn view(user: &cc_domain::User) -> User {
             cc_domain::State::Blocked => "blocked",
             _ => "unknown",
         },
-        registered_at: rfc3339(user.registered_at()),
+        registered_at: crate::moment(user.registered_at()),
     }
-}
-
-/// Записывает момент времени по RFC 3339.
-///
-/// Форматирование сделано вручную: крейт `time` в доступной версии тянет за
-/// feature `formatting` макросы, которых нет в индексе.
-fn rfc3339(moment: OffsetDateTime) -> String {
-    format!(
-        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
-        moment.year(),
-        u8::from(moment.month()),
-        moment.day(),
-        moment.hour(),
-        moment.minute(),
-        moment.second()
-    )
 }

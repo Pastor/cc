@@ -1,6 +1,7 @@
 //! Сборка маршрутов и слоёв.
 
 use crate::problem::stamp;
+use crate::sessions;
 use crate::state::State;
 use crate::users;
 use crate::version::negotiate;
@@ -43,6 +44,16 @@ pub fn router(state: State, limits: Limits) -> Router {
         .route("/api/users/me", get(users::me))
         .route("/api/users/{login}/public-key", get(users::public_key))
         .route("/api/users/{login}/prelude", get(users::prelude))
+        .route("/api/sessions", axum::routing::post(sessions::open))
+        .route("/api/sessions/current", get(sessions::current))
+        .route(
+            "/api/sessions/current",
+            axum::routing::delete(sessions::close),
+        )
+        .route(
+            "/api/sessions/{id}",
+            axum::routing::delete(sessions::drop_one),
+        )
         .layer(axum::middleware::from_fn(negotiate));
     let service = Router::new()
         .route("/health/live", get(live))
