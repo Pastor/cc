@@ -21,7 +21,7 @@ mod throttle;
 mod users;
 mod vk;
 
-pub use authorizations::{Authorization, Authorizations, Pkce, Ticket};
+pub use authorizations::{Authorization, Authorizations, Completion, Pkce, Ticket};
 pub use blobs::Blobs;
 pub use confirmation::{Confirmations, LIFETIME, MAX_ATTEMPTS};
 pub use credentials::{Challenge, Credentials, Registration, Wrapped};

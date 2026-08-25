@@ -7,6 +7,7 @@
 
 mod auth;
 mod bytes;
+mod identities;
 mod observe;
 mod problem;
 mod router;
@@ -19,13 +20,14 @@ mod version;
 
 pub use auth::Authenticated;
 pub use bytes::Binary;
+pub use identities::{Attachment, Linked, Requested, Returned, Started};
 pub use observe::trace;
 pub use problem::{stamp, Failure, Problem};
 pub use router::{describe, router, Limits};
 pub use sessions::{Credentials, Current, Entry, Issued, WrappedKeys};
 pub use source::Source;
 pub use spec::Spec;
-pub use state::{Guards, State};
+pub use state::{Federation, Guards, State, Stores};
 pub use users::{Enrollment, Kdf, Key, Keys, Prelude, User};
 pub use version::{negotiate, Unsupported, Version, API_VERSION};
 

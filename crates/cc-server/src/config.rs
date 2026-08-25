@@ -20,6 +20,60 @@ pub struct Config {
     limits: Limits,
 }
 
+/// Приложение VK ID.
+#[derive(Clone, Deserialize)]
+pub struct VkApp {
+    client: String,
+    secret: String,
+    redirect: String,
+}
+
+impl core::fmt::Debug for VkApp {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("VkApp([REDACTED])")
+    }
+}
+
+impl VkApp {
+    /// Идентификатор приложения.
+    #[must_use]
+    pub fn client(&self) -> &str {
+        &self.client
+    }
+
+    /// Секрет приложения: на клиент не попадает никогда.
+    #[must_use]
+    pub fn secret(&self) -> &str {
+        &self.secret
+    }
+
+    /// Адрес возврата, зарегистрированный у провайдера.
+    #[must_use]
+    pub fn redirect(&self) -> &str {
+        &self.redirect
+    }
+}
+
+/// Бот Telegram.
+#[derive(Clone, Deserialize)]
+pub struct TelegramBot {
+    token: String,
+}
+
+impl core::fmt::Debug for TelegramBot {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("TelegramBot([REDACTED])")
+    }
+}
+
+impl TelegramBot {
+    /// Токен бота — секрет уровня закрытого ключа.
+    #[must_use]
+    pub fn token(&self) -> &str {
+        &self.token
+    }
+}
+
 impl Config {
     /// Читает конфигурацию из файла и переменных окружения.
     ///
@@ -75,6 +129,8 @@ impl Config {
 #[derive(Clone, Deserialize)]
 pub struct Secrets {
     server: String,
+    vk: Option<VkApp>,
+    telegram: Option<TelegramBot>,
 }
 
 impl core::fmt::Debug for Secrets {
@@ -90,6 +146,21 @@ impl Secrets {
     pub const fn server(&self) -> &[u8] {
         self.server.as_bytes()
     }
+
+    /// Приложение VK ID, если оно настроено.
+    ///
+    /// Провайдера может не быть вовсе: тогда внешний вход через него не
+    /// работает, и наружу это выглядит как неизвестный провайдер.
+    #[must_use]
+    pub const fn vk(&self) -> Option<&VkApp> {
+        self.vk.as_ref()
+    }
+
+    /// Бот Telegram, если он настроен.
+    #[must_use]
+    pub const fn telegram(&self) -> Option<&TelegramBot> {
+        self.telegram.as_ref()
+    }
 }
 
 /// Пределы, применяемые к запросам.
@@ -98,6 +169,7 @@ pub struct Limits {
     body_bytes: usize,
     request_seconds: u64,
     session_hours: i64,
+    authorization_minutes: i64,
 }
 
 impl Limits {
@@ -118,6 +190,15 @@ impl Limits {
     pub const fn session(self) -> time::Duration {
         time::Duration::hours(self.session_hours)
     }
+
+    /// Срок жизни запроса авторизации и подписанных данных виджета.
+    ///
+    /// Запрос живёт минуты: чем короче окно, тем меньше проку от перехваченных
+    /// данных (`TODO.md`, раздел 4.3).
+    #[must_use]
+    pub const fn authorization(self) -> time::Duration {
+        time::Duration::minutes(self.authorization_minutes)
+    }
 }
 
 #[cfg(test)]
@@ -129,7 +210,7 @@ mod tests {
         reason = "в тесте отказ обязан ронять тест; размер ошибки figment::Jail нам не подконтролен"
     )]
 
-    use super::{Config, Secrets};
+    use super::{Config, Secrets, TelegramBot, VkApp};
 
     #[test]
     fn missing_configuration_is_refused() {
@@ -154,6 +235,7 @@ mod tests {
                 body_bytes = 1024
                 request_seconds = 30
                 session_hours = 1
+                authorization_minutes = 5
                 "#,
             )?;
             assert!(
@@ -178,6 +260,7 @@ mod tests {
                 body_bytes = 1024
                 request_seconds = 30
                 session_hours = 1
+                authorization_minutes = 5
                 "#,
             )?;
             assert!(
@@ -202,6 +285,7 @@ mod tests {
                 body_bytes = 1024
                 request_seconds = 30
                 session_hours = 1
+                authorization_minutes = 5
                 "#,
             )?;
             jail.set_env("CC_LISTEN", "127.0.0.1:4321");
@@ -228,6 +312,7 @@ mod tests {
                 body_bytes = 1024
                 request_seconds = 30
                 session_hours = 1
+                authorization_minutes = 5
                 "#,
             )?;
             jail.set_env("CC_LISTEN", "127.0.0.1:4321");
@@ -241,9 +326,37 @@ mod tests {
     }
 
     #[test]
+    fn provider_settings_are_not_printed() {
+        let app = VkApp {
+            client: "52000000".to_owned(),
+            secret: "s3cret".to_owned(),
+            redirect: "https://cstore.example/auth/vk/callback".to_owned(),
+        };
+        assert_eq!(
+            format!("{app:?}"),
+            "VkApp([REDACTED])",
+            "отладочный вывод раскрыл секрет приложения провайдера"
+        );
+    }
+
+    #[test]
+    fn bot_token_is_not_printed() {
+        let bot = TelegramBot {
+            token: "123456:ABC".to_owned(),
+        };
+        assert_eq!(
+            format!("{bot:?}"),
+            "TelegramBot([REDACTED])",
+            "отладочный вывод раскрыл токен бота"
+        );
+    }
+
+    #[test]
     fn secrets_are_not_printed() {
         let secrets = Secrets {
             server: "s3cret".to_owned(),
+            vk: None,
+            telegram: None,
         };
         assert_eq!(
             format!("{secrets:?}"),

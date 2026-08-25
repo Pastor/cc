@@ -7,6 +7,14 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+# Доставка писем подтверждения по SMTP.
+default = []
+smtp = ["cc-storage/smtp"]
+# Обмен кода авторизации у VK ID. Без него провайдер не собирается: молча
+# притворяться работающим он не должен.
+oauth = ["cc-storage/oauth"]
+
 [dependencies]
 cc-api.workspace = true
 cc-crypto.workspace = true
@@ -23,6 +31,7 @@ tracing-subscriber.workspace = true
 [dev-dependencies]
 cc-crypto.workspace = true
 cc-domain.workspace = true
+cc-storage.workspace = true
 base64.workspace = true
 cc-api.workspace = true
 figment = { workspace = true, features = ["test"] }

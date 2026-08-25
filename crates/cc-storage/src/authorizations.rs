@@ -8,7 +8,7 @@ use crate::error::{Error, Result};
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine as _;
 use cc_crypto::{sha256, ContentKey};
-use cc_domain::Provider;
+use cc_domain::{ExternalIdentity, Provider};
 use std::collections::HashMap;
 use time::{Duration, OffsetDateTime};
 use tokio::sync::RwLock;
@@ -149,13 +149,33 @@ impl Authorization {
     }
 }
 
+/// Завершённая процедура: личность, установленная провайдером.
+///
+/// Ждёт того, кто начал процедуру: код авторизации и обмен остаются на
+/// сервере, клиент предъявляет только свой билет.
+#[derive(Clone, Debug)]
+pub struct Completion {
+    identity: ExternalIdentity,
+    client: String,
+    deadline: OffsetDateTime,
+}
+
+impl Completion {
+    /// Установленная личность.
+    #[must_use]
+    pub const fn identity(&self) -> &ExternalIdentity {
+        &self.identity
+    }
+}
+
 /// Запросы авторизации, хранимые в памяти процесса.
 ///
 /// Реализация временная: данные не переживают перезапуск. Постоянное хранилище
 /// вводит TASK-018.
 #[derive(Debug)]
 pub struct Authorizations {
-    by_ticket: RwLock<HashMap<Ticket, Authorization>>,
+    started: RwLock<HashMap<Ticket, Authorization>>,
+    completed: RwLock<HashMap<Ticket, Completion>>,
     lifetime: Duration,
 }
 
@@ -164,7 +184,8 @@ impl Authorizations {
     #[must_use]
     pub fn new(lifetime: Duration) -> Self {
         Self {
-            by_ticket: RwLock::new(HashMap::new()),
+            started: RwLock::new(HashMap::new()),
+            completed: RwLock::new(HashMap::new()),
             lifetime,
         }
     }
@@ -183,45 +204,86 @@ impl Authorizations {
             client: client.into(),
             deadline: now + self.lifetime,
         };
-        let mut requests = self.by_ticket.write().await;
+        let mut requests = self.started.write().await;
         requests.insert(ticket.clone(), authorization.clone());
         drop(requests);
         (ticket, authorization)
     }
 
-    /// Изымает запрос по билету.
+    /// Изымает начатый запрос по билету — на обратном вызове провайдера.
     ///
     /// Запрос одноразовый: удачное изъятие удаляет его, и повторный ответ
-    /// провайдера с тем же билетом уже ничего не найдёт.
+    /// провайдера с тем же билетом уже ничего не найдёт. Клиент здесь не
+    /// проверяется: обратный вызов приходит от браузера, а не от того, кто
+    /// начал процедуру, — привязка к клиенту проверяется при выдаче сессии.
     ///
     /// # Errors
     ///
-    /// [`Error::Missing`], если билет неизвестен, просрочен либо предъявлен не
-    /// тем клиентом. Различать эти случаи наружу нельзя: ответ работал бы
-    /// оракулом чужих запросов.
-    pub async fn claim(
-        &self,
-        ticket: &Ticket,
-        client: &str,
-        now: OffsetDateTime,
-    ) -> Result<Authorization> {
-        let mut requests = self.by_ticket.write().await;
+    /// [`Error::Missing`], если билет неизвестен либо просрочен. Различать эти
+    /// случаи наружу нельзя: ответ работал бы оракулом чужих запросов.
+    pub async fn redeem(&self, ticket: &Ticket, now: OffsetDateTime) -> Result<Authorization> {
+        let mut requests = self.started.write().await;
         let found = requests.remove(ticket);
         drop(requests);
         let Some(authorization) = found else {
             return Err(Error::Missing);
         };
-        if authorization.deadline <= now || authorization.client != client {
+        if authorization.deadline <= now {
             return Err(Error::Missing);
         }
         Ok(authorization)
     }
 
-    /// Убирает просроченные запросы.
+    /// Запоминает установленную личность до прихода начавшего процедуру.
+    pub async fn settle(
+        &self,
+        ticket: &Ticket,
+        authorization: &Authorization,
+        identity: ExternalIdentity,
+    ) {
+        let completion = Completion {
+            identity,
+            client: authorization.client.clone(),
+            deadline: authorization.deadline,
+        };
+        let mut done = self.completed.write().await;
+        done.insert(ticket.clone(), completion);
+        drop(done);
+    }
+
+    /// Забирает установленную личность — тем, кто начал процедуру.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Missing`], если билет неизвестен, просрочен, ещё не завершён
+    /// либо предъявлен не тем клиентом.
+    pub async fn collect(
+        &self,
+        ticket: &Ticket,
+        client: &str,
+        now: OffsetDateTime,
+    ) -> Result<Completion> {
+        let mut done = self.completed.write().await;
+        let found = done.remove(ticket);
+        drop(done);
+        let Some(completion) = found else {
+            return Err(Error::Missing);
+        };
+        if completion.deadline <= now || completion.client != client {
+            return Err(Error::Missing);
+        }
+        Ok(completion)
+    }
+
+    /// Убирает просроченные запросы — и начатые, и завершённые.
     pub async fn sweep(&self, now: OffsetDateTime) {
-        self.by_ticket
+        self.started
             .write()
             .await
             .retain(|_, request| request.deadline > now);
+        self.completed
+            .write()
+            .await
+            .retain(|_, completion| completion.deadline > now);
     }
 }

@@ -43,6 +43,8 @@ spec:
               value: "30"
             - name: CC_LIMITS__SESSION_HOURS
               value: "12"
+            - name: CC_LIMITS__AUTHORIZATION_MINUTES
+              value: "5"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

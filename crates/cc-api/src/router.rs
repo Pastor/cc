@@ -4,6 +4,7 @@
 //! спецификации и описание без маршрута невозможны по построению, а не
 //! отлавливаются тестом задним числом.
 
+use crate::identities;
 use crate::observe::trace;
 use crate::problem::stamp;
 use crate::spec::Spec;
@@ -48,6 +49,9 @@ fn versioned() -> (Router<State>, utoipa::openapi::OpenApi) {
         .routes(routes!(users::public_key))
         .routes(routes!(users::prelude))
         .routes(routes!(sessions::open))
+        .routes(routes!(identities::begin))
+        .routes(routes!(identities::all, identities::attach))
+        .routes(routes!(identities::detach))
         .routes(routes!(sessions::current, sessions::close))
         .routes(routes!(sessions::drop_one))
         .split_for_parts()
@@ -68,6 +72,9 @@ pub fn router(state: State, limits: Limits) -> Router {
     // Документ публикует сам SwaggerUi по указанному ниже адресу: отдельный
     // маршрут для него привёл бы к двойной регистрации одного пути.
     let service = Router::new()
+        // Обратный вызов провайдера вне версионируемого контракта: его
+        // вызывает браузер, а не клиент (`TODO.md`, раздел 4.3).
+        .route("/auth/{provider}/callback", get(identities::callback))
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
         .route("/api/version", get(version));

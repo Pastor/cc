@@ -154,10 +154,19 @@ impl Failure {
             Self::Domain(_) | Self::Storage(cc_storage::Error::ContentMismatch) => {
                 StatusCode::UNPROCESSABLE_ENTITY
             }
-            Self::Storage(cc_storage::Error::LoginTaken) => StatusCode::CONFLICT,
+            Self::Storage(cc_storage::Error::LoginTaken | cc_storage::Error::IdentityTaken) => {
+                StatusCode::CONFLICT
+            }
+            // Данные провайдера проверяются криптографически: сказать, что они
+            // не приняты, оракулом чужих записей не работает.
+            Self::Storage(
+                cc_storage::Error::Signature | cc_storage::Error::Stale | cc_storage::Error::Replay,
+            )
+            | Self::Unauthenticated => StatusCode::UNAUTHORIZED,
+            Self::Storage(cc_storage::Error::Malformed) | Self::Malformed => {
+                StatusCode::BAD_REQUEST
+            }
             Self::Storage(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::Malformed => StatusCode::BAD_REQUEST,
-            Self::Unauthenticated => StatusCode::UNAUTHORIZED,
             Self::ConditionRequired => StatusCode::PRECONDITION_REQUIRED,
             Self::ConditionFailed => StatusCode::PRECONDITION_FAILED,
             Self::TooManyRequests | Self::TooSoon { .. } => StatusCode::TOO_MANY_REQUESTS,

@@ -6,12 +6,14 @@
 
 mod config;
 
-pub use config::{Config, Limits, Secrets};
+pub use config::{Config, Limits, Secrets, TelegramBot, VkApp};
 
 use anyhow::Context as _;
-use cc_api::Guards;
-use cc_api::State;
-use cc_storage::{Blobs, Confirmations, Discarded, Postbox, Sessions, Throttle, Users};
+use cc_api::{Federation, Guards, State, Stores};
+use cc_storage::{
+    Authorizations, Blobs, Confirmations, Discarded, Postbox, Sessions, Telegram, Throttle, Users,
+    Vk,
+};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -74,6 +76,51 @@ impl Server {
     }
 }
 
+/// Собирает внешний вход по конфигурации.
+///
+/// Провайдер без настроек отсутствует: маршрут отвечает как на неизвестного, и
+/// о настройке сервера наружу ничего не сообщается.
+fn federation(config: &Config) -> anyhow::Result<Federation> {
+    let window = config.limits().authorization();
+    let telegram = config
+        .secrets()
+        .telegram()
+        .map(|bot| Telegram::new(bot.token(), window));
+    Ok(Federation::new(
+        Authorizations::new(window),
+        telegram,
+        vk(config)?,
+    ))
+}
+
+/// Собирает вход через VK ID, если приложение настроено.
+///
+/// Без возможности `oauth` обмена кода нет, и провайдер не собирается даже при
+/// заданных настройках: молча притворяться работающим он не должен.
+#[cfg(feature = "oauth")]
+fn vk(config: &Config) -> anyhow::Result<Option<Vk>> {
+    let Some(app) = config.secrets().vk() else {
+        return Ok(None);
+    };
+    let exchange = cc_storage::Oauth::new(app.client(), app.secret(), app.redirect())
+        .context("настройка обмена кода авторизации VK ID")?;
+    Ok(Some(Vk::new(
+        app.client(),
+        app.redirect(),
+        std::sync::Arc::new(exchange),
+    )))
+}
+
+/// Собирает вход через VK ID: без возможности `oauth` его нет.
+#[cfg(not(feature = "oauth"))]
+#[allow(
+    clippy::unnecessary_wraps,
+    reason = "сигнатура общая с вариантом, собранным с возможностью oauth"
+)]
+const fn vk(_config: &Config) -> anyhow::Result<Option<Vk>> {
+    Ok(None)
+}
+
 /// Поднимает сервер по конфигурации, не дожидаясь его завершения.
 ///
 /// # Errors
@@ -83,20 +130,16 @@ pub async fn serve(config: &Config) -> anyhow::Result<Server> {
     let blobs = Blobs::open(config.storage())
         .await
         .context("открытие хранилища шифротекста")?;
-    let users = Arc::new(Users::new(
-        config.secrets().server().to_vec(),
-        cc_crypto_params(),
-    ));
+    let users = Users::new(config.secrets().server().to_vec(), cc_crypto_params());
     let sessions = Arc::new(Sessions::new(config.limits().session()));
     // Транспорт по умолчанию ничего не отправляет: без настроенного релея
     // регистрация не должна ломаться из-за письма. Настоящий транспорт
     // подключается feature `smtp` крейта cc-storage.
     let (postbox, posting) = Postbox::new(Arc::new(Discarded));
     let state = State::new(
-        users,
-        Arc::clone(&sessions),
-        Arc::new(blobs),
+        Arc::new(Stores::new(users, Arc::clone(&sessions), blobs)),
         Arc::new(Guards::new(Confirmations::new(), Throttle::new(), postbox)),
+        Arc::new(federation(config)?),
     );
     let router = cc_api::router(
         state,

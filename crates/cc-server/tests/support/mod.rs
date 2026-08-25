@@ -38,6 +38,16 @@ pub struct Instance {
 impl Instance {
     /// Поднимает сервер на эфемерном порту.
     pub async fn start() -> Self {
+        Self::configured("").await
+    }
+
+    /// Поднимает сервер с настроенным ботом Telegram.
+    pub async fn with_telegram(token: &str) -> Self {
+        Self::configured(&format!("[secrets.telegram]\ntoken = \"{token}\"\n")).await
+    }
+
+    /// Поднимает сервер, дописывая в конфигурацию указанное.
+    async fn configured(extra: &str) -> Self {
         let root = TempDir::new().unwrap();
         let path = root.path().join("cc.toml");
         let storage = root.path().join("data");
@@ -47,13 +57,14 @@ impl Instance {
             r#"
 listen = "127.0.0.1:0"
 storage = "{}"
-[secrets]
-server = "s3cret-value-for-tests"
 [limits]
 body_bytes = 1048576
 request_seconds = 5
 session_hours = 1
-"#,
+authorization_minutes = 5
+[secrets]
+server = "s3cret-value-for-tests"
+{extra}"#,
             storage.display()
         )
         .unwrap();

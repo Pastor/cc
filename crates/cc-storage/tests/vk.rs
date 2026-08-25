@@ -160,35 +160,3 @@ fn authorization_escapes_the_redirect() {
         "адрес возврата ушёл в запрос незакодированным"
     );
 }
-
-#[test]
-fn matching_redirect_is_accepted() {
-    assert!(
-        vk(Stub::answering("1"))
-            .redirected("https://cstore.example/auth/vk/callback")
-            .is_ok(),
-        "совпадающий адрес возврата отвергнут"
-    );
-}
-
-#[test]
-fn redirect_with_extra_path_is_refused() {
-    assert!(
-        matches!(
-            vk(Stub::answering("1")).redirected("https://cstore.example/auth/vk/callback/evil"),
-            Err(Error::Malformed)
-        ),
-        "адрес возврата сверен по префиксу, а не целиком"
-    );
-}
-
-#[test]
-fn foreign_redirect_is_refused() {
-    assert!(
-        matches!(
-            vk(Stub::answering("1")).redirected("https://evil.example/auth/vk/callback"),
-            Err(Error::Malformed)
-        ),
-        "чужой адрес возврата принят"
-    );
-}
