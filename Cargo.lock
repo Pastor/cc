@@ -147,6 +147,7 @@ version = "0.1.0"
 dependencies = [
  "cc-crypto",
  "cc-domain",
+ "subtle",
  "tempfile",
  "thiserror",
  "time",

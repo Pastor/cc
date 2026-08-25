@@ -12,6 +12,7 @@ mod hash;
 mod id;
 mod quota;
 mod rights;
+mod session;
 mod user;
 mod username;
 
@@ -21,5 +22,6 @@ pub use hash::ContentHash;
 pub use id::{ContentId, DirectoryId, FileId, GrantId, LinkId, SessionId, TagId, UserId};
 pub use quota::{ByteSize, Quota};
 pub use rights::{Right, Rights};
+pub use session::{Session, Timing};
 pub use user::{State, User};
 pub use username::Username;

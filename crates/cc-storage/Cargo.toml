@@ -9,12 +9,13 @@ repository.workspace = true
 [dependencies]
 cc-crypto.workspace = true
 cc-domain.workspace = true
+subtle.workspace = true
 thiserror.workspace = true
 time.workspace = true
-tokio = { workspace = true, features = ["sync", "fs", "io-util"] }
+tokio = { workspace = true, features = ["sync", "fs", "io-util", "rt", "time", "macros"] }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "time"] }
 tempfile.workspace = true
 
 [lints]
