@@ -27,7 +27,7 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
 /// Заявка на вход.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct Credentials {
     login: String,
     auth: Binary,
@@ -37,7 +37,7 @@ pub struct Credentials {
 ///
 /// Токен отдаётся один раз: сервер хранит его отпечаток и вернуть токен не
 /// может.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct Issued {
     id: String,
     token: String,
@@ -45,7 +45,7 @@ pub struct Issued {
 }
 
 /// Сведения о действующей сессии.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct Current {
     id: String,
     user: String,
@@ -57,7 +57,7 @@ pub struct Current {
 /// Обёртки ключей, отдаваемые вошедшему.
 ///
 /// Развернуть их может только клиент: у сервера нет ни пароля, ни ключей.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct WrappedKeys {
     account_by_password: Binary,
     account_by_recovery: Binary,
@@ -65,7 +65,7 @@ pub struct WrappedKeys {
 }
 
 /// Ответ на успешный вход.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct Entry {
     session: Issued,
     keys: WrappedKeys,
@@ -78,6 +78,18 @@ pub struct Entry {
 /// - `422` — логин недопустим;
 /// - `404` — логин неизвестен либо хеш не сошёлся; различить эти случаи нельзя,
 ///   иначе ответ работает оракулом существования учётных записей.
+#[utoipa::path(
+    post,
+    path = "/api/sessions",
+    tag = "sessions",
+    request_body = Credentials,
+    responses(
+        (status = 201, description = "Сессия открыта", body = Entry),
+        (status = 404, description = "Логин неизвестен либо хеш не сошёлся"),
+        (status = 422, description = "Логин недопустим"),
+    ),
+    params(("API-Version" = Option<u16>, Header, description = "Версия контракта")),
+)]
 pub(crate) async fn open(
     Extract(state): Extract<State>,
     Json(request): Json<Credentials>,
@@ -115,6 +127,17 @@ pub(crate) async fn open(
 /// # Errors
 ///
 /// `401` — сессия отсутствует либо истекла.
+#[utoipa::path(
+    get,
+    path = "/api/sessions/current",
+    tag = "sessions",
+    responses(
+        (status = 200, description = "Сведения о текущей сессии", body = Current),
+        (status = 401, description = "Сессия отсутствует либо истекла"),
+    ),
+    params(("API-Version" = Option<u16>, Header, description = "Версия контракта")),
+    security(("bearer" = [])),
+)]
 pub(crate) async fn current(session: Authenticated) -> Result<Json<Current>, Failure> {
     let session = session.session();
     Ok(Json(Current {
@@ -134,6 +157,17 @@ pub(crate) async fn current(session: Authenticated) -> Result<Json<Current>, Fai
 /// # Errors
 ///
 /// `401` — сессия отсутствует либо истекла.
+#[utoipa::path(
+    delete,
+    path = "/api/sessions/current",
+    tag = "sessions",
+    responses(
+        (status = 204, description = "Сессия завершена"),
+        (status = 401, description = "Сессия отсутствует либо истекла"),
+    ),
+    params(("API-Version" = Option<u16>, Header, description = "Версия контракта")),
+    security(("bearer" = [])),
+)]
 pub(crate) async fn close(
     Extract(state): Extract<State>,
     session: Authenticated,
@@ -151,6 +185,21 @@ pub(crate) async fn close(
 ///
 /// - `401` — сессия отсутствует;
 /// - `422` — идентификатор недопустим.
+#[utoipa::path(
+    delete,
+    path = "/api/sessions/{id}",
+    tag = "sessions",
+    responses(
+        (status = 204, description = "Сессия завершена"),
+        (status = 401, description = "Сессия отсутствует"),
+        (status = 422, description = "Идентификатор недопустим"),
+    ),
+    params(
+        ("id" = String, Path, description = "Идентификатор сессии"),
+        ("API-Version" = Option<u16>, Header, description = "Версия контракта"),
+    ),
+    security(("bearer" = [])),
+)]
 pub(crate) async fn drop_one(
     Extract(state): Extract<State>,
     session: Authenticated,

@@ -151,7 +151,7 @@ async fn request_with(address: std::net::SocketAddr, path: &str, headers: &str) 
 async fn request_without_version_is_served() {
     let root = TempDir::new().unwrap();
     let server = serve(&config(&root)).await.unwrap();
-    let (status, _) = request(server.address(), "/api/files").await;
+    let (status, _) = request(server.address(), "/api/users/nobody@example.com/prelude").await;
     server.stop().await.unwrap();
     assert_eq!(
         status, 200,
@@ -163,7 +163,7 @@ async fn request_without_version_is_served() {
 async fn request_without_version_gets_the_newest() {
     let root = TempDir::new().unwrap();
     let server = serve(&config(&root)).await.unwrap();
-    let (_, body) = request(server.address(), "/api/files").await;
+    let (_, body) = request(server.address(), "/api/users/nobody@example.com/prelude").await;
     server.stop().await.unwrap();
     let newest = cc_api::Version::SUPPORTED
         .iter()
@@ -181,7 +181,12 @@ async fn request_without_version_gets_the_newest() {
 async fn supported_version_is_served() {
     let root = TempDir::new().unwrap();
     let server = serve(&config(&root)).await.unwrap();
-    let (status, _) = request_with(server.address(), "/api/files", "API-Version: 1\r\n").await;
+    let (status, _) = request_with(
+        server.address(),
+        "/api/users/nobody@example.com/prelude",
+        "API-Version: 1\r\n",
+    )
+    .await;
     server.stop().await.unwrap();
     assert_eq!(status, 200, "поддерживаемая версия отвергнута");
 }
@@ -190,7 +195,12 @@ async fn supported_version_is_served() {
 async fn unknown_version_is_refused() {
     let root = TempDir::new().unwrap();
     let server = serve(&config(&root)).await.unwrap();
-    let (status, _) = request_with(server.address(), "/api/files", "API-Version: 99\r\n").await;
+    let (status, _) = request_with(
+        server.address(),
+        "/api/users/nobody@example.com/prelude",
+        "API-Version: 99\r\n",
+    )
+    .await;
     server.stop().await.unwrap();
     assert_eq!(status, 400, "неизвестная версия обслужена вместо отказа");
 }
@@ -199,7 +209,12 @@ async fn unknown_version_is_refused() {
 async fn refusal_lists_supported_versions() {
     let root = TempDir::new().unwrap();
     let server = serve(&config(&root)).await.unwrap();
-    let (_, body) = request_with(server.address(), "/api/files", "API-Version: 99\r\n").await;
+    let (_, body) = request_with(
+        server.address(),
+        "/api/users/nobody@example.com/prelude",
+        "API-Version: 99\r\n",
+    )
+    .await;
     server.stop().await.unwrap();
     assert!(
         body.contains("supported"),
@@ -211,7 +226,12 @@ async fn refusal_lists_supported_versions() {
 async fn refusal_uses_problem_json() {
     let root = TempDir::new().unwrap();
     let server = serve(&config(&root)).await.unwrap();
-    let (_, body) = request_with(server.address(), "/api/files", "API-Version: 99\r\n").await;
+    let (_, body) = request_with(
+        server.address(),
+        "/api/users/nobody@example.com/prelude",
+        "API-Version: 99\r\n",
+    )
+    .await;
     server.stop().await.unwrap();
     assert!(
         body.to_lowercase().contains("application/problem+json"),
@@ -223,7 +243,7 @@ async fn refusal_uses_problem_json() {
 async fn versioned_response_varies_by_version() {
     let root = TempDir::new().unwrap();
     let server = serve(&config(&root)).await.unwrap();
-    let (_, body) = request(server.address(), "/api/files").await;
+    let (_, body) = request(server.address(), "/api/users/nobody@example.com/prelude").await;
     server.stop().await.unwrap();
     assert!(
         body.to_lowercase().contains("vary: api-version"),
@@ -235,7 +255,7 @@ async fn versioned_response_varies_by_version() {
 async fn versioned_response_echoes_applied_version() {
     let root = TempDir::new().unwrap();
     let server = serve(&config(&root)).await.unwrap();
-    let (_, body) = request(server.address(), "/api/files").await;
+    let (_, body) = request(server.address(), "/api/users/nobody@example.com/prelude").await;
     server.stop().await.unwrap();
     assert!(
         body.to_lowercase().contains("api-version: 1"),
@@ -259,7 +279,12 @@ async fn service_route_ignores_version_header() {
 async fn refusal_carries_request_identifier() {
     let root = TempDir::new().unwrap();
     let server = serve(&config(&root)).await.unwrap();
-    let (_, body) = request_with(server.address(), "/api/files", "API-Version: 99\r\n").await;
+    let (_, body) = request_with(
+        server.address(),
+        "/api/users/nobody@example.com/prelude",
+        "API-Version: 99\r\n",
+    )
+    .await;
     server.stop().await.unwrap();
     assert!(
         body.contains("instance"),
@@ -271,10 +296,53 @@ async fn refusal_carries_request_identifier() {
 async fn successful_response_is_not_rewritten() {
     let root = TempDir::new().unwrap();
     let server = serve(&config(&root)).await.unwrap();
-    let (_, body) = request(server.address(), "/api/files").await;
+    let (_, body) = request(server.address(), "/api/users/nobody@example.com/prelude").await;
     server.stop().await.unwrap();
     assert!(
-        body.contains("\"items\""),
+        body.contains("\"salt\""),
         "успешный ответ изменён слоем отметки отказов"
+    );
+}
+
+#[tokio::test]
+async fn specification_is_published() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (status, _) = request(server.address(), "/api/openapi.json").await;
+    server.stop().await.unwrap();
+    assert_eq!(status, 200, "спецификация не опубликована");
+}
+
+#[tokio::test]
+async fn specification_describes_the_service() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (_, body) = request(server.address(), "/api/openapi.json").await;
+    server.stop().await.unwrap();
+    assert!(
+        body.contains("/api/sessions"),
+        "опубликованная спецификация не описывает маршрутов сервиса"
+    );
+}
+
+#[tokio::test]
+async fn documentation_is_served() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (status, _) = request(server.address(), "/api/docs/").await;
+    server.stop().await.unwrap();
+    assert_eq!(status, 200, "интерактивная документация не отдана");
+}
+
+#[tokio::test]
+async fn specification_ignores_the_version_header() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (status, _) =
+        request_with(server.address(), "/api/openapi.json", "API-Version: 99\r\n").await;
+    server.stop().await.unwrap();
+    assert_eq!(
+        status, 200,
+        "спецификация отвергнута из-за версии контракта, хотя вне её"
     );
 }

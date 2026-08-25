@@ -1,12 +1,16 @@
 //! Сборка маршрутов и слоёв.
+//!
+//! Маршруты и их описания регистрируются вместе: маршрут без описания в
+//! спецификации и описание без маршрута невозможны по построению, а не
+//! отлавливаются тестом задним числом.
 
 use crate::problem::stamp;
-use crate::sessions;
+use crate::spec::Spec;
 use crate::state::State;
-use crate::users;
 use crate::version::negotiate;
+use crate::{sessions, users};
 use axum::routing::get;
-use axum::Router;
+use axum::{Json, Router};
 use http::header::{HeaderName, HeaderValue};
 use std::time::Duration;
 use tower_http::limit::RequestBodyLimitLayer;
@@ -14,6 +18,9 @@ use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetReques
 use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
+use utoipa::OpenApi as _;
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_axum::routes;
 
 /// Пределы, применяемые к запросам.
 #[derive(Clone, Copy, Debug)]
@@ -33,34 +40,40 @@ impl Limits {
 /// Имя заголовка идентификатора запроса.
 const REQUEST_ID: HeaderName = HeaderName::from_static("x-request-id");
 
+/// Собирает версионируемую часть приложения вместе с её описанием.
+fn versioned() -> (Router<State>, utoipa::openapi::OpenApi) {
+    OpenApiRouter::with_openapi(Spec::openapi())
+        .routes(routes!(users::enroll))
+        .routes(routes!(users::me))
+        .routes(routes!(users::public_key))
+        .routes(routes!(users::prelude))
+        .routes(routes!(sessions::open))
+        .routes(routes!(sessions::current, sessions::close))
+        .routes(routes!(sessions::drop_one))
+        .split_for_parts()
+}
+
+/// Строит спецификацию, не собирая приложение, — для проверок.
+#[must_use]
+pub fn describe() -> utoipa::openapi::OpenApi {
+    versioned().1
+}
+
 /// Собирает приложение целиком.
 ///
-/// Служебные маршруты — пробы и версия сборки — не участвуют в версионировании
-/// контракта (`TODO.md`, раздел 10.1).
+/// Служебные маршруты — спецификация, документация, пробы и версия сборки — не
+/// участвуют в версионировании контракта (`TODO.md`, раздел 10.1).
 pub fn router(state: State, limits: Limits) -> Router {
-    let versioned = Router::new()
-        .route("/api/files", get(files))
-        .route("/api/users", axum::routing::post(users::enroll))
-        .route("/api/users/me", get(users::me))
-        .route("/api/users/{login}/public-key", get(users::public_key))
-        .route("/api/users/{login}/prelude", get(users::prelude))
-        .route("/api/sessions", axum::routing::post(sessions::open))
-        .route("/api/sessions/current", get(sessions::current))
-        .route(
-            "/api/sessions/current",
-            axum::routing::delete(sessions::close),
-        )
-        .route(
-            "/api/sessions/{id}",
-            axum::routing::delete(sessions::drop_one),
-        )
-        .layer(axum::middleware::from_fn(negotiate));
+    let (api, document) = versioned();
+    // Документ публикует сам SwaggerUi по указанному ниже адресу: отдельный
+    // маршрут для него привёл бы к двойной регистрации одного пути.
     let service = Router::new()
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
         .route("/api/version", get(version));
     service
-        .merge(versioned)
+        .merge(api.layer(axum::middleware::from_fn(negotiate)))
+        .merge(utoipa_swagger_ui::SwaggerUi::new("/api/docs").url("/api/openapi.json", document))
         .with_state(state)
         .layer(PropagateRequestIdLayer::new(REQUEST_ID))
         .layer(axum::middleware::from_fn(stamp))
@@ -85,14 +98,6 @@ pub fn router(state: State, limits: Limits) -> Router {
         .layer(SetRequestIdLayer::new(REQUEST_ID, MakeRequestUuid))
 }
 
-/// Коллекция файлов.
-///
-/// Заглушка: наполняется в TASK-013. Здесь она нужна, чтобы слой согласования
-/// версии имел, что защищать.
-async fn files() -> axum::Json<serde_json::Value> {
-    axum::Json(serde_json::json!({ "items": [], "next": serde_json::Value::Null }))
-}
-
 /// Проба живости: процесс отвечает.
 async fn live() -> &'static str {
     "ok"
@@ -106,6 +111,6 @@ async fn ready() -> &'static str {
 /// Версия сборки сервиса.
 ///
 /// Это диагностика, а не версия контракта: подменять одно другим нельзя.
-async fn version() -> axum::Json<serde_json::Value> {
-    axum::Json(serde_json::json!({ "version": env!("CARGO_PKG_VERSION") }))
+async fn version() -> Json<serde_json::Value> {
+    Json(serde_json::json!({ "version": env!("CARGO_PKG_VERSION") }))
 }

@@ -12,6 +12,20 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Binary(Vec<u8>);
 
+impl utoipa::PartialSchema for Binary {
+    fn schema() -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+        utoipa::openapi::ObjectBuilder::new()
+            .schema_type(utoipa::openapi::schema::Type::String)
+            .format(Some(utoipa::openapi::SchemaFormat::KnownFormat(
+                utoipa::openapi::KnownFormat::Byte,
+            )))
+            .description(Some("двоичное значение в записи Base64"))
+            .into()
+    }
+}
+
+impl utoipa::ToSchema for Binary {}
+
 impl Binary {
     /// Принимает значение.
     #[must_use]

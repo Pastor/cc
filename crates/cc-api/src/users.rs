@@ -28,7 +28,7 @@ use time::OffsetDateTime;
 ///
 /// Всё, кроме логина, сервер сохраняет как есть: разобрать это он не в
 /// состоянии, потому что ключей у него нет.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct Enrollment {
     login: String,
     auth: Binary,
@@ -40,7 +40,7 @@ pub struct Enrollment {
 }
 
 /// Параметры выведения ключа, выбранные клиентом.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct Kdf {
     memory_kib: u32,
     iterations: u32,
@@ -48,7 +48,7 @@ pub struct Kdf {
 }
 
 /// Обёртки ключей, присланные клиентом.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct Keys {
     account_by_password: Binary,
     account_by_recovery: Binary,
@@ -58,7 +58,7 @@ pub struct Keys {
 /// Представление учётной записи.
 ///
 /// Ни ключей, ни солей, ни аутентификационного хеша здесь нет и быть не может.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct User {
     id: String,
     login: String,
@@ -67,13 +67,13 @@ pub struct User {
 }
 
 /// Открытый ключ пользователя.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct Key {
     public_key: Binary,
 }
 
 /// Параметры выведения ключа, отдаваемые перед входом.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct Prelude {
     salt: Binary,
     kdf: Kdf,
@@ -85,6 +85,18 @@ pub struct Prelude {
 ///
 /// - `422` — логин или присланные значения недопустимы;
 /// - `409` — логин занят.
+#[utoipa::path(
+    post,
+    path = "/api/users",
+    tag = "users",
+    request_body = Enrollment,
+    responses(
+        (status = 201, description = "Учётная запись создана", body = User),
+        (status = 409, description = "Логин занят"),
+        (status = 422, description = "Логин или присланные значения недопустимы"),
+    ),
+    params(("API-Version" = Option<u16>, Header, description = "Версия контракта")),
+)]
 pub(crate) async fn enroll(
     Extract(state): Extract<State>,
     Json(request): Json<Enrollment>,
@@ -141,6 +153,17 @@ pub(crate) async fn enroll(
 /// # Errors
 ///
 /// `401` — сессия отсутствует либо истекла.
+#[utoipa::path(
+    get,
+    path = "/api/users/me",
+    tag = "users",
+    responses(
+        (status = 200, description = "Сведения о себе", body = User),
+        (status = 401, description = "Сессия отсутствует либо истекла"),
+    ),
+    params(("API-Version" = Option<u16>, Header, description = "Версия контракта")),
+    security(("bearer" = [])),
+)]
 pub(crate) async fn me(
     Extract(state): Extract<State>,
     session: Authenticated,
@@ -158,6 +181,21 @@ pub(crate) async fn me(
 ///
 /// - `401` — сессия отсутствует;
 /// - `404` — такого пользователя нет.
+#[utoipa::path(
+    get,
+    path = "/api/users/{login}/public-key",
+    tag = "users",
+    responses(
+        (status = 200, description = "Открытый ключ получателя", body = Key),
+        (status = 401, description = "Сессия отсутствует"),
+        (status = 404, description = "Такого пользователя нет"),
+    ),
+    params(
+        ("login" = String, Path, description = "Логин пользователя"),
+        ("API-Version" = Option<u16>, Header, description = "Версия контракта"),
+    ),
+    security(("bearer" = [])),
+)]
 pub(crate) async fn public_key(
     Extract(state): Extract<State>,
     _session: Authenticated,
@@ -178,6 +216,19 @@ pub(crate) async fn public_key(
 /// # Errors
 ///
 /// `422` — логин недопустим.
+#[utoipa::path(
+    get,
+    path = "/api/users/{login}/prelude",
+    tag = "users",
+    responses(
+        (status = 200, description = "Соль и параметры выведения ключа", body = Prelude),
+        (status = 422, description = "Логин недопустим"),
+    ),
+    params(
+        ("login" = String, Path, description = "Логин пользователя"),
+        ("API-Version" = Option<u16>, Header, description = "Версия контракта"),
+    ),
+)]
 pub(crate) async fn prelude(
     Extract(state): Extract<State>,
     Path(login): Path<String>,
