@@ -4,33 +4,30 @@
 # Версия Rust берётся из rust-toolchain.toml: тот же компилятор, что у
 # разработчика и в конвейере.
 
-FROM rust:1.98-slim AS builder
+FROM rust:1.98-slim AS chef
 
 WORKDIR /build
 
-# Сначала манифесты — слой с зависимостями переиспользуется, пока они не
-# менялись.
-COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
-COPY crates/cc-api/Cargo.toml crates/cc-api/
-COPY crates/cc-client/Cargo.toml crates/cc-client/
-COPY crates/cc-crypto/Cargo.toml crates/cc-crypto/
-COPY crates/cc-domain/Cargo.toml crates/cc-domain/
-COPY crates/cc-server/Cargo.toml crates/cc-server/
-COPY crates/cc-storage/Cargo.toml crates/cc-storage/
-RUN mkdir -p crates/cc-api/src crates/cc-client/src crates/cc-crypto/src \
-        crates/cc-domain/src crates/cc-server/src crates/cc-storage/src \
-    && for crate in cc-api cc-client cc-crypto cc-domain cc-storage; do \
-        echo '' > crates/$crate/src/lib.rs; \
-    done \
-    && echo 'fn main() {}' > crates/cc-server/src/main.rs \
-    && echo '' > crates/cc-server/src/lib.rs \
-    && cargo build --release --bin cc-server \
-    && rm -rf crates/*/src
+# Слой зависимостей готовит cargo-chef: он выводит его из Cargo.lock и потому
+# не расходится с рабочим пространством при появлении нового крейта, бинарника
+# или замера. Версия зафиксирована — инструмент сборки обновляется так же
+# осознанно, как и всё остальное.
+RUN cargo install cargo-chef --locked --version 0.1.78
 
-COPY crates crates
-# Отметки времени у заглушек новее исходников: без прикосновения cargo сочтёт
-# сборку актуальной и не пересоберёт настоящий код.
-RUN touch crates/*/src/*.rs && cargo build --release --bin cc-server
+FROM chef AS planner
+
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+
+COPY --from=planner /build/recipe.json recipe.json
+# Рецепт описывает только зависимости: слой переиспользуется, пока не менялся
+# Cargo.lock, независимо от правок исходников.
+RUN cargo chef cook --release --locked --recipe-path recipe.json --bin cc-server
+
+COPY . .
+RUN cargo build --release --locked --bin cc-server
 
 FROM gcr.io/distroless/cc-debian12:nonroot
 

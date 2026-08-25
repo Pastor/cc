@@ -5,24 +5,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cStore
+  name: cstore
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cStore
+      app: cstore
   template:
     metadata:
       labels:
-        app: cStore
+        app: cstore
     spec:
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: cStore
-          image: cStore:latest
+        - name: cstore
+          image: ghcr.io/pastor/cc:latest
           ports:
             - containerPort: 8080
           env:
@@ -35,7 +35,7 @@ spec:
             - name: CC_SECRETS__SERVER
               valueFrom:
                 secretKeyRef:
-                  name: cStore
+                  name: cstore
                   key: server-secret
             - name: CC_LIMITS__BODY_BYTES
               value: "16777216"
@@ -64,4 +64,4 @@ spec:
           persistentVolumeClaim:
             # Локальный том, а не сетевой: SQLite на сетевой файловой системе
             # повреждается (TODO.md, TASK-051).
-            claimName: cStore
+            claimName: cstore
