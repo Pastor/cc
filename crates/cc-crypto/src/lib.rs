@@ -13,6 +13,7 @@ mod error;
 mod keys;
 mod password;
 mod secret;
+mod stored;
 mod vectors;
 mod wrap;
 
@@ -28,4 +29,5 @@ pub use keys::{
 };
 pub use password::{derive_master_key, KdfParams};
 pub use secret::Secret;
+pub use stored::{decoy_salt, StoredAuth};
 pub use wrap::{open, open_for, seal, seal_for, KeyPair, PublicKey, PUBLIC_KEY_LEN};

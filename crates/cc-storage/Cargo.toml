@@ -7,6 +7,14 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+cc-crypto.workspace = true
+cc-domain.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tokio = { workspace = true, features = ["sync"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }
 
 [lints]
 workspace = true

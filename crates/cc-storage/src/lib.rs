@@ -3,5 +3,12 @@
 //! Крейт отвечает за размещение содержимого и за доступ к метаданным; ключей он
 //! не знает и расшифровать хранимое не может.
 
-// TODO: наполнить хранилищем шифротекста — TASK-006 в TASKS.md.
-// Не сделано сейчас, потому что TASK-001 отвечает только за каркас workspace.
+mod confirmation;
+mod credentials;
+mod error;
+mod users;
+
+pub use confirmation::{Confirmations, LIFETIME, MAX_ATTEMPTS};
+pub use credentials::{Challenge, Credentials, Wrapped};
+pub use error::{Error, Result};
+pub use users::Users;

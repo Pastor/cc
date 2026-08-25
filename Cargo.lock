@@ -138,6 +138,13 @@ dependencies = [
 [[package]]
 name = "cc-storage"
 version = "0.1.0"
+dependencies = [
+ "cc-crypto",
+ "cc-domain",
+ "thiserror",
+ "time",
+ "tokio",
+]
 
 [[package]]
 name = "cfg-if"
