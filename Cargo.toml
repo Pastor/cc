@@ -1,0 +1,50 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/cc-domain",
+    "crates/cc-crypto",
+    "crates/cc-storage",
+    "crates/cc-api",
+    "crates/cc-server",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.98"
+license = "Apache-2.0"
+repository = "https://github.com/Pastor/cc"
+
+[workspace.dependencies]
+cc-api = { path = "crates/cc-api" }
+cc-crypto = { path = "crates/cc-crypto" }
+cc-domain = { path = "crates/cc-domain" }
+cc-storage = { path = "crates/cc-storage" }
+anyhow = { version = "1.0.104", default-features = false, features = ["std"] }
+tokio = { version = "1.53.1", default-features = false }
+tracing = { version = "0.1.44", default-features = false, features = ["std", "attributes"] }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "env-filter"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+print_stdout = "warn"
+print_stderr = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
