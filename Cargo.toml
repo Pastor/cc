@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/cc-client",
     "crates/cc-domain",
     "crates/cc-crypto",
     "crates/cc-storage",
@@ -17,6 +18,7 @@ repository = "https://github.com/Pastor/cc"
 
 [workspace.dependencies]
 cc-api = { path = "crates/cc-api" }
+cc-client = { path = "crates/cc-client" }
 cc-crypto = { path = "crates/cc-crypto" }
 cc-domain = { path = "crates/cc-domain" }
 cc-storage = { path = "crates/cc-storage" }

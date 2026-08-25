@@ -6,6 +6,8 @@
 
 use crate::error::{Error, Result};
 use crate::secret::Secret;
+use chacha20poly1305::aead::rand_core::RngCore as _;
+use chacha20poly1305::aead::OsRng;
 use hkdf::Hkdf;
 use sha2::Sha256;
 
@@ -32,6 +34,24 @@ macro_rules! key {
             #[must_use]
             pub const fn expose(&self) -> &[u8; KEY_LEN] {
                 self.0.expose()
+            }
+
+            /// Порождает ключ из источника случайности операционной системы.
+            #[must_use]
+            pub fn generate() -> Self {
+                Self(Secret::new(random()))
+            }
+
+            /// Открывает материал как носитель секрета — для обёртывания.
+            #[must_use]
+            pub const fn as_secret(&self) -> &Secret<KEY_LEN> {
+                &self.0
+            }
+
+            /// Принимает материал из носителя секрета — после разворачивания.
+            #[must_use]
+            pub const fn from_secret(secret: Secret<KEY_LEN>) -> Self {
+                Self(secret)
             }
         }
     };
@@ -126,6 +146,13 @@ impl AccountKey {
     pub fn tags(&self) -> TagKey {
         TagKey::new(branch(self.expose(), BRANCH_TAGS))
     }
+}
+
+/// Порождает случайный ключевой материал.
+fn random() -> [u8; KEY_LEN] {
+    let mut bytes = [0_u8; KEY_LEN];
+    OsRng.fill_bytes(&mut bytes);
+    bytes
 }
 
 /// Выводит ветвь фиксированной длины из корневого материала.

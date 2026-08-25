@@ -87,6 +87,16 @@ name = "cc-api"
 version = "0.1.0"
 
 [[package]]
+name = "cc-client"
+version = "0.1.0"
+dependencies = [
+ "cc-crypto",
+ "cc-domain",
+ "getrandom 0.2.17",
+ "thiserror",
+]
+
+[[package]]
 name = "cc-crypto"
 version = "0.1.0"
 dependencies = [

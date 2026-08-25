@@ -16,3 +16,8 @@ proptest.workspace = true
 
 [lints]
 workspace = true
+
+# Источник случайности для веб-клиента: без feature "js" крейт uuid отказывается
+# собираться под wasm32-unknown-unknown.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+uuid = { workspace = true, features = ["js"] }
