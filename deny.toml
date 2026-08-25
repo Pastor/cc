@@ -26,9 +26,18 @@ ignore = [
 
 [licenses]
 version = 2
+# Лицензии перечисляются поимённо: разрешать их классом — то же самое, что не
+# проверять вовсе. Все перечисленные пермиссивны и совместимы с Apache-2.0, под
+# которой выпущен проект.
 allow = [
+    # quoted_printable, приходит из lettre.
+    "0BSD",
     "Apache-2.0",
     "BSD-3-Clause",
+    # webpki-roots: набор корневых сертификатов, приходит из rustls.
+    "CDLA-Permissive-2.0",
+    # ring, untrusted и rustls-webpki, приходят из rustls.
+    "ISC",
     "MIT",
     "Unicode-3.0",
     "Zlib",
