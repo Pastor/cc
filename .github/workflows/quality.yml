@@ -37,11 +37,20 @@ jobs:
       - name: Форматирование
         run: cargo fmt --all -- --check
 
+      - name: Установка nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Тесты со всеми возможностями
-        run: cargo test --all-features --workspace
+        # nextest запускает каждый тест в своём процессе: разделяемое состояние
+        # между тестами становится невозможным, а не просто нежелательным.
+        run: cargo nextest run --all-features --workspace
 
       - name: Тесты без возможностей по умолчанию
-        run: cargo test --no-default-features --workspace
+        run: cargo nextest run --no-default-features --workspace
+
+      - name: Тесты документации
+        # nextest их не запускает: cargo test --doc остаётся отдельным шагом.
+        run: cargo test --doc --all-features --workspace
 
       - name: Документация
         run: cargo doc --no-deps --all-features
