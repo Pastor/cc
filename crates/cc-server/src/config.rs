@@ -171,6 +171,7 @@ pub struct Limits {
     session_hours: i64,
     authorization_minutes: i64,
     trash_days: i64,
+    metadata_bytes: usize,
 }
 
 impl Limits {
@@ -190,6 +191,16 @@ impl Limits {
     #[must_use]
     pub const fn session(self) -> time::Duration {
         time::Duration::hours(self.session_hours)
+    }
+
+    /// Наибольший размер одной категории метаинформации файла.
+    ///
+    /// Публичная категория допускает произвольные пары «ключ-значение» от
+    /// владельца, и предел им нужен: без него метаинформация становится
+    /// хранилищем в обход учёта содержимого (`TODO.md`, раздел 3).
+    #[must_use]
+    pub const fn metadata_bytes(self) -> usize {
+        self.metadata_bytes
     }
 
     /// Срок хранения удалённого файла в корзине.
@@ -247,6 +258,7 @@ mod tests {
                 session_hours = 1
                 authorization_minutes = 5
                 trash_days = 30
+                metadata_bytes = 65536
                 "#,
             )?;
             assert!(
@@ -273,6 +285,7 @@ mod tests {
                 session_hours = 1
                 authorization_minutes = 5
                 trash_days = 30
+                metadata_bytes = 65536
                 "#,
             )?;
             assert!(
@@ -299,6 +312,7 @@ mod tests {
                 session_hours = 1
                 authorization_minutes = 5
                 trash_days = 30
+                metadata_bytes = 65536
                 "#,
             )?;
             jail.set_env("CC_LISTEN", "127.0.0.1:4321");
@@ -327,6 +341,7 @@ mod tests {
                 session_hours = 1
                 authorization_minutes = 5
                 trash_days = 30
+                metadata_bytes = 65536
                 "#,
             )?;
             jail.set_env("CC_LISTEN", "127.0.0.1:4321");

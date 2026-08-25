@@ -20,7 +20,7 @@ mod username;
 
 pub use access::{permit, permit_grant, rights, visible, Claimant};
 pub use error::{Error, Result};
-pub use file::{Content, Envelope, File, Grant, Link, Stamps, Subject, Technical};
+pub use file::{Content, Envelope, File, Grant, Link, Metadata, Stamps, Subject, Technical};
 pub use hash::ContentHash;
 pub use id::{ContentId, DirectoryId, FileId, GrantId, LinkId, SessionId, TagId, UserId};
 pub use identity::{ExternalIdentity, Provider};

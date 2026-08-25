@@ -25,8 +25,10 @@ fn hash(ciphertext: &str) -> String {
 /// Строит заявку на создание файла.
 fn creation(ciphertext: &str) -> String {
     let wrapped = STANDARD.encode([3_u8; 72]);
+    let public = STANDARD.encode([4_u8; 48]);
+    let private = STANDARD.encode([5_u8; 48]);
     format!(
-        r#"{{"technical":{{"hash":"{}","size":{},"format":1}},"keys":{{"content":"{wrapped}","metadata":"{wrapped}"}}}}"#,
+        r#"{{"technical":{{"hash":"{}","size":{},"format":1}},"metadata":{{"public":"{public}","private":"{private}"}},"keys":{{"content":"{wrapped}","metadata":"{wrapped}"}}}}"#,
         hash(ciphertext),
         ciphertext.len()
     )
@@ -369,5 +371,234 @@ async fn collection_paginates() {
     assert!(
         body.contains("\"next\""),
         "страница коллекции не сообщила курсора следующей"
+    );
+}
+
+#[tokio::test]
+async fn owner_sees_the_private_metadata() {
+    let server = Instance::start().await;
+    let token = server.signed_in(&unique_login("meta-owner")).await;
+    let id = created(&server, &token, CIPHERTEXT).await;
+    let response = server
+        .call("GET", &format!("/api/files/{id}"), &token, None)
+        .await;
+    let body = response.body().to_owned();
+    server.stop().await;
+    assert!(
+        body.contains(&STANDARD.encode([5_u8; 48])),
+        "владелец не увидел закрытой метаинформации своего файла"
+    );
+}
+
+#[tokio::test]
+async fn stranger_sees_no_metadata_at_all() {
+    let server = Instance::start().await;
+    let owner = server.signed_in(&unique_login("meta-hidden")).await;
+    let stranger = server.signed_in(&unique_login("meta-seeker")).await;
+    created(&server, &owner, CIPHERTEXT).await;
+    let listing = server.call("GET", "/api/files", &stranger, None).await;
+    let body = listing.body().to_owned();
+    server.stop().await;
+    assert!(
+        !body.contains(&STANDARD.encode([4_u8; 48])),
+        "постороннему видна публичная метаинформация чужого файла"
+    );
+}
+
+#[tokio::test]
+async fn published_metadata_replaces_the_public_part() {
+    let server = Instance::start().await;
+    let token = server.signed_in(&unique_login("meta-publish")).await;
+    let id = created(&server, &token, CIPHERTEXT).await;
+    let replacement = STANDARD.encode([6_u8; 24]);
+    server
+        .call(
+            "PUT",
+            &format!("/api/files/{id}/public-metadata"),
+            &format!("{token}If-Match: W/\"1\"\r\n"),
+            Some(&format!(r#"{{"public":"{replacement}"}}"#)),
+        )
+        .await;
+    let response = server
+        .call("GET", &format!("/api/files/{id}"), &token, None)
+        .await;
+    let body = response.body().to_owned();
+    server.stop().await;
+    assert!(
+        body.contains(&replacement),
+        "публичная метаинформация не заменилась"
+    );
+}
+
+#[tokio::test]
+async fn publishing_demands_a_condition() {
+    let server = Instance::start().await;
+    let token = server.signed_in(&unique_login("meta-unconditional")).await;
+    let id = created(&server, &token, CIPHERTEXT).await;
+    let response = server
+        .call(
+            "PUT",
+            &format!("/api/files/{id}/public-metadata"),
+            &token,
+            Some(&format!(
+                r#"{{"public":"{}"}}"#,
+                STANDARD.encode([6_u8; 24])
+            )),
+        )
+        .await;
+    let status = response.status();
+    server.stop().await;
+    assert_eq!(
+        status, 428,
+        "метаинформация переписана без условия If-Match"
+    );
+}
+
+#[tokio::test]
+async fn stale_revision_is_refused() {
+    let server = Instance::start().await;
+    let token = server.signed_in(&unique_login("meta-stale")).await;
+    let id = created(&server, &token, CIPHERTEXT).await;
+    let body = format!(r#"{{"public":"{}"}}"#, STANDARD.encode([6_u8; 24]));
+    server
+        .call(
+            "PUT",
+            &format!("/api/files/{id}/public-metadata"),
+            &format!("{token}If-Match: W/\"1\"\r\n"),
+            Some(&body),
+        )
+        .await;
+    let again = server
+        .call(
+            "PUT",
+            &format!("/api/files/{id}/public-metadata"),
+            &format!("{token}If-Match: W/\"1\"\r\n"),
+            Some(&body),
+        )
+        .await;
+    let status = again.status();
+    server.stop().await;
+    assert_eq!(
+        status, 412,
+        "изменение по устаревшей редакции затёрло чужое"
+    );
+}
+
+#[tokio::test]
+async fn publishing_leaves_the_ciphertext_alone() {
+    let server = Instance::start().await;
+    let token = server.signed_in(&unique_login("meta-content")).await;
+    let id = uploaded(&server, &token, CIPHERTEXT).await;
+    server
+        .call(
+            "PUT",
+            &format!("/api/files/{id}/public-metadata"),
+            &format!("{token}If-Match: W/\"1\"\r\n"),
+            Some(&format!(
+                r#"{{"public":"{}"}}"#,
+                STANDARD.encode([6_u8; 24])
+            )),
+        )
+        .await;
+    let response = server
+        .call("GET", &format!("/api/files/{id}/content"), &token, None)
+        .await;
+    let content = response.body().to_owned();
+    server.stop().await;
+    assert_eq!(
+        content, CIPHERTEXT,
+        "замена метаинформации затронула шифротекст"
+    );
+}
+
+#[tokio::test]
+async fn oversized_metadata_is_refused() {
+    let server = Instance::start().await;
+    let token = server.signed_in(&unique_login("meta-oversized")).await;
+    let id = created(&server, &token, CIPHERTEXT).await;
+    let response = server
+        .call(
+            "PUT",
+            &format!("/api/files/{id}/public-metadata"),
+            &format!("{token}If-Match: W/\"1\"\r\n"),
+            Some(&format!(
+                r#"{{"public":"{}"}}"#,
+                STANDARD.encode(vec![7_u8; 70_000])
+            )),
+        )
+        .await;
+    let status = response.status();
+    server.stop().await;
+    assert_eq!(status, 413, "метаинформация сверх предела принята");
+}
+
+#[tokio::test]
+async fn foreign_metadata_is_not_published() {
+    let server = Instance::start().await;
+    let owner = server.signed_in(&unique_login("meta-owner-keep")).await;
+    let stranger = server.signed_in(&unique_login("meta-vandal")).await;
+    let id = created(&server, &owner, CIPHERTEXT).await;
+    let response = server
+        .call(
+            "PUT",
+            &format!("/api/files/{id}/public-metadata"),
+            &format!("{stranger}If-Match: W/\"1\"\r\n"),
+            Some(&format!(
+                r#"{{"public":"{}"}}"#,
+                STANDARD.encode([6_u8; 24])
+            )),
+        )
+        .await;
+    let status = response.status();
+    server.stop().await;
+    assert_eq!(status, 404, "метаинформация чужого файла переписана");
+}
+
+#[tokio::test]
+async fn concealed_metadata_replaces_the_private_part() {
+    let server = Instance::start().await;
+    let token = server.signed_in(&unique_login("meta-conceal")).await;
+    let id = created(&server, &token, CIPHERTEXT).await;
+    let replacement = STANDARD.encode([8_u8; 24]);
+    server
+        .call(
+            "PUT",
+            &format!("/api/files/{id}/private-metadata"),
+            &format!("{token}If-Match: W/\"1\"\r\n"),
+            Some(&format!(r#"{{"private":"{replacement}"}}"#)),
+        )
+        .await;
+    let response = server
+        .call("GET", &format!("/api/files/{id}"), &token, None)
+        .await;
+    let body = response.body().to_owned();
+    server.stop().await;
+    assert!(
+        body.contains(&replacement),
+        "закрытая метаинформация не заменилась"
+    );
+}
+
+#[tokio::test]
+async fn server_writes_the_technical_metadata_itself() {
+    let server = Instance::start().await;
+    let token = server.signed_in(&unique_login("meta-technical")).await;
+    let forged = format!(
+        r#"{{"technical":{{"hash":"{}","size":{},"format":1,"content":"00000000-0000-0000-0000-000000000000","uploaded":true,"created_at":"1970-01-01T00:00:00Z"}},"metadata":{{"public":"{}"}},"keys":{{"content":"{}","metadata":"{}"}}}}"#,
+        hash(CIPHERTEXT),
+        CIPHERTEXT.len(),
+        STANDARD.encode([4_u8; 48]),
+        STANDARD.encode([3_u8; 72]),
+        STANDARD.encode([3_u8; 72])
+    );
+    let response = server
+        .call("POST", "/api/files", &token, Some(&forged))
+        .await;
+    let body = response.body().to_owned();
+    server.stop().await;
+    assert!(
+        !body.contains("00000000-0000-0000-0000-000000000000")
+            && body.contains("\"uploaded\":false"),
+        "присланная клиентом техническая метаинформация принята за свою"
     );
 }

@@ -21,11 +21,13 @@ use axum::extract::{Path, Query, State as Extract};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use cc_domain::{
-    ByteSize, Claimant, Content, ContentHash, ContentId, Envelope, File, FileId, Right, Rights,
-    Stamps, Subject, Technical,
+    ByteSize, Claimant, Content, ContentHash, ContentId, Envelope, File, FileId, Metadata, Right,
+    Rights, Stamps, Subject, Technical,
 };
 use cc_storage::{Listed, PAGE_DEFAULT};
-use http::header::{ACCEPT_RANGES, CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE, LOCATION, RANGE};
+use http::header::{
+    ACCEPT_RANGES, CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE, ETAG, IF_MATCH, LOCATION, RANGE,
+};
 use http::{HeaderMap, StatusCode};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -49,12 +51,37 @@ pub struct Wrapping {
     metadata: Binary,
 }
 
+/// Зашифрованная метаинформация в запросе и в ответе.
+///
+/// Публичную разворачивает ключ метаданных файла, закрытую — ключ учётной
+/// записи владельца. Сервер не понимает ни ту, ни другую (`TODO.md`, раздел 3).
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
+pub struct Categories {
+    public: Binary,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    private: Option<Binary>,
+}
+
+/// Заявка на замену публичной метаинформации.
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
+pub struct Publication {
+    public: Binary,
+}
+
+/// Заявка на замену закрытой метаинформации.
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
+pub struct Concealment {
+    #[serde(default)]
+    private: Option<Binary>,
+}
+
 /// Заявка на создание файла.
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct Creation {
     #[serde(default)]
     directory: Option<String>,
     technical: Declared,
+    metadata: Categories,
     keys: Wrapping,
 }
 
@@ -80,6 +107,8 @@ pub struct Described {
     #[serde(skip_serializing_if = "Option::is_none")]
     directory: Option<String>,
     technical: Recorded,
+    metadata: Categories,
+    revision: u64,
     rights: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     keys: Option<Wrapping>,
@@ -129,6 +158,7 @@ pub(crate) async fn create(
     session: Authenticated,
     Json(request): Json<Creation>,
 ) -> Result<Response, Failure> {
+    let limits = state.limits();
     let owner = session.session().user();
     let directory = request
         .directory
@@ -151,11 +181,19 @@ pub(crate) async fn create(
         request.keys.content.map(Binary::into_inner),
         request.keys.metadata.into_inner(),
     )?;
+    let metadata = Metadata::new(
+        sized(request.metadata.public, limits.metadata())?,
+        request
+            .metadata
+            .private
+            .map(|value| sized(value, limits.metadata()))
+            .transpose()?,
+    )?;
     state
         .files()
-        .create(file, technical.clone(), envelope.clone())
+        .create(file, technical.clone(), metadata.clone(), envelope.clone())
         .await;
-    let body = described(&file, &technical, Rights::all(), Some(&envelope));
+    let body = described(&file, &technical, &metadata, Rights::all(), Some(&envelope));
     let location = format!("/api/files/{}", file.id());
     Ok((StatusCode::CREATED, [(LOCATION, location)], Json(body)).into_response())
 }
@@ -228,13 +266,18 @@ pub(crate) async fn one(
     Extract(state): Extract<State>,
     session: Authenticated,
     Path(id): Path<String>,
-) -> Result<Json<Described>, Failure> {
+) -> Result<Response, Failure> {
     let claimant = claimant(&session);
     let listed = state
         .files()
         .one(&claimant, FileId::parse(&id)?, &[])
         .await?;
-    Ok(Json(listing(&claimant, &listed)))
+    let revision = listed.metadata().revision();
+    let mut response = Json(listing(&claimant, &listed)).into_response();
+    if let Ok(value) = http::HeaderValue::from_str(&tag(revision)) {
+        response.headers_mut().insert(ETAG, value);
+    }
+    Ok(response)
 }
 
 /// Помещает файл в корзину.
@@ -298,6 +341,7 @@ pub(crate) async fn discard(
     responses(
         (status = 204, description = "Шифротекст принят"),
         (status = 401, description = "Сессия отсутствует либо истекла"),
+        (status = 403, description = "Право записывать содержимое не выдано"),
         (status = 404, description = "Файла нет либо он не виден"),
         (status = 422, description = "Размер или хеш не совпали с заявленными"),
     ),
@@ -317,7 +361,7 @@ pub(crate) async fn upload(
     let claimant = claimant(&session);
     let listed = state.files().one(&claimant, id, &[]).await?;
     cc_domain::permit(&claimant, listed.file(), &[], Right::Write)
-        .map_err(|_| Failure::Storage(cc_storage::Error::Missing))?;
+        .map_err(|_| Failure::Forbidden)?;
     let content = listed.technical().content();
     state
         .blobs()
@@ -363,8 +407,11 @@ pub(crate) async fn download(
         .files()
         .one(&claimant, FileId::parse(&id)?, &[])
         .await?;
+    // Файл заявителю виден — значит право видеть метаинформацию у него есть, и
+    // отказ в чтении содержимого не раскрывает существования ресурса
+    // (`TODO.md`, раздел 4.10, шаг 3).
     cc_domain::permit(&claimant, listed.file(), &[], Right::Read)
-        .map_err(|_| Failure::Storage(cc_storage::Error::Missing))?;
+        .map_err(|_| Failure::Forbidden)?;
     if listed.file().content().is_none() {
         return Err(Failure::Storage(cc_storage::Error::Missing));
     }
@@ -400,12 +447,166 @@ pub(crate) async fn download(
     Ok(response)
 }
 
+// TODO: право видеть публичную метаинформацию отделено от права читать
+// содержимое, но проверить это сценарием пока не на чем: выдать доступ без
+// права чтения некому, пока нет хранилища выданного доступа. Тест появится
+// вместе с TASK-014.
+
 // TODO: выданный доступ пока не хранится, поэтому проверкам передаётся пустой
 // перечень: видит файл только владелец. Хранилище выданного доступа вводит
 // TASK-014, и тогда сюда придут настоящие записи.
 
 // TODO: квота при создании файла не проверяется — учёта израсходованного
 // объёма ещё нет. Его вводит TASK-015 (`TODO.md`, раздел 4.6, пункт 4).
+
+/// Заменяет публичную метаинформацию.
+///
+/// Изменение условно: без совпадения редакции сервер отвечает `412`, и правка
+/// с одного устройства не затирает правку с другого.
+///
+/// # Errors
+///
+/// - `401` — сессия отсутствует либо истекла;
+/// - `404` — файла нет либо записывать в него не разрешено;
+/// - `412` — предъявленная редакция разошлась с текущей;
+/// - `413` — метаинформация длиннее предела;
+/// - `428` — изменение требует заголовка `If-Match`.
+#[utoipa::path(
+    put,
+    path = "/api/files/{id}/public-metadata",
+    tag = "files",
+    request_body = Publication,
+    responses(
+        (status = 204, description = "Публичная метаинформация заменена"),
+        (status = 401, description = "Сессия отсутствует либо истекла"),
+        (status = 404, description = "Файла нет либо он не виден"),
+        (status = 412, description = "Редакция разошлась с текущей"),
+        (status = 413, description = "Метаинформация длиннее предела"),
+        (status = 428, description = "Изменение требует заголовка If-Match"),
+    ),
+    params(
+        ("id" = String, Path, description = "Идентификатор файла"),
+        ("If-Match" = String, Header, description = "Редакция метаинформации"),
+        ("API-Version" = Option<u16>, Header, description = "Версия контракта"),
+    ),
+    security(("bearer" = [])),
+)]
+pub(crate) async fn publish(
+    Extract(state): Extract<State>,
+    session: Authenticated,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+    Json(request): Json<Publication>,
+) -> Result<Response, Failure> {
+    let expected = expected(&headers)?;
+    let public = sized(request.public, state.limits().metadata())?;
+    let revision = state
+        .files()
+        .publish(
+            &claimant(&session),
+            FileId::parse(&id)?,
+            &[],
+            public,
+            expected,
+        )
+        .await?;
+    Ok(tagged(revision))
+}
+
+/// Заменяет закрытую метаинформацию.
+///
+/// Только владелец: закрытая категория зашифрована ключом его учётной записи,
+/// и осмысленно переписать её больше некому.
+///
+/// # Errors
+///
+/// - `401` — сессия отсутствует либо истекла;
+/// - `404` — файла нет либо заявитель не владелец;
+/// - `412` — предъявленная редакция разошлась с текущей;
+/// - `413` — метаинформация длиннее предела;
+/// - `428` — изменение требует заголовка `If-Match`.
+#[utoipa::path(
+    put,
+    path = "/api/files/{id}/private-metadata",
+    tag = "files",
+    request_body = Concealment,
+    responses(
+        (status = 204, description = "Закрытая метаинформация заменена"),
+        (status = 401, description = "Сессия отсутствует либо истекла"),
+        (status = 404, description = "Файла нет либо он не виден"),
+        (status = 412, description = "Редакция разошлась с текущей"),
+        (status = 413, description = "Метаинформация длиннее предела"),
+        (status = 428, description = "Изменение требует заголовка If-Match"),
+    ),
+    params(
+        ("id" = String, Path, description = "Идентификатор файла"),
+        ("If-Match" = String, Header, description = "Редакция метаинформации"),
+        ("API-Version" = Option<u16>, Header, description = "Версия контракта"),
+    ),
+    security(("bearer" = [])),
+)]
+pub(crate) async fn conceal(
+    Extract(state): Extract<State>,
+    session: Authenticated,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+    Json(request): Json<Concealment>,
+) -> Result<Response, Failure> {
+    let expected = expected(&headers)?;
+    let private = request
+        .private
+        .map(|value| sized(value, state.limits().metadata()))
+        .transpose()?;
+    let revision = state
+        .files()
+        .conceal(&claimant(&session), FileId::parse(&id)?, private, expected)
+        .await?;
+    Ok(tagged(revision))
+}
+
+/// Читает редакцию из заголовка `If-Match`.
+///
+/// Заголовок обязателен: безусловная запись метаинформации молча теряет чужие
+/// изменения, а `RULE.md` требует немедленного отказа вместо молчаливого.
+fn expected(headers: &HeaderMap) -> Result<u64, Failure> {
+    let value = headers
+        .get(IF_MATCH)
+        .and_then(|value| value.to_str().ok())
+        .ok_or(Failure::ConditionRequired)?;
+    value
+        .trim()
+        .trim_start_matches("W/")
+        .trim_matches('"')
+        .parse()
+        .map_err(|_| Failure::ConditionFailed)
+}
+
+/// Отвечает без тела, объявляя новую редакцию метки.
+fn tagged(revision: u64) -> Response {
+    let mut response = StatusCode::NO_CONTENT.into_response();
+    if let Ok(value) = http::HeaderValue::from_str(&tag(revision)) {
+        response.headers_mut().insert(ETAG, value);
+    }
+    response
+}
+
+/// Записывает редакцию меткой сущности.
+fn tag(revision: u64) -> String {
+    format!("W/\"{revision}\"")
+}
+
+/// Проверяет, что значение укладывается в предел.
+///
+/// # Errors
+///
+/// [`Failure::TooLarge`], если значение длиннее предела.
+fn sized(value: Binary, limit: usize) -> Result<Vec<u8>, Failure> {
+    let bytes = value.into_inner();
+    if bytes.len() > limit {
+        return Err(Failure::TooLarge);
+    }
+    Ok(bytes)
+}
 
 /// Собирает заявителя из сессии.
 const fn claimant(session: &Authenticated) -> Claimant {
@@ -420,6 +621,7 @@ fn listing(claimant: &Claimant, listed: &Listed) -> Described {
     described(
         listed.file(),
         listed.technical(),
+        listed.metadata(),
         cc_domain::rights(claimant, listed.file(), &[]),
         listed.envelope(),
     )
@@ -429,6 +631,7 @@ fn listing(claimant: &Claimant, listed: &Listed) -> Described {
 fn described(
     file: &File,
     technical: &Technical,
+    metadata: &Metadata,
     rights: Rights,
     envelope: Option<&Envelope>,
 ) -> Described {
@@ -444,6 +647,11 @@ fn described(
             modified_at: crate::moment(technical.stamps().modified_at()),
             uploaded: file.content().is_some(),
         },
+        metadata: Categories {
+            public: Binary::new(metadata.public().to_vec()),
+            private: metadata.private().map(|bytes| Binary::new(bytes.to_vec())),
+        },
+        revision: metadata.revision(),
         rights: rights.iter().map(|right| right.name().to_owned()).collect(),
         keys: envelope.map(|envelope| Wrapping {
             content: envelope.content().map(|bytes| Binary::new(bytes.to_vec())),

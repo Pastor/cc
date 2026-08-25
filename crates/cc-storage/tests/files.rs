@@ -8,7 +8,7 @@
 
 use cc_domain::{
     ByteSize, Claimant, Content, ContentHash, ContentId, Envelope, File, FileId, Grant, GrantId,
-    Rights, Stamps, Subject, Technical, UserId,
+    Metadata, Rights, Stamps, Subject, Technical, UserId,
 };
 use cc_storage::{Error, Files};
 use time::{Duration, OffsetDateTime};
@@ -34,6 +34,10 @@ fn technical(fill: &str, at: OffsetDateTime) -> Technical {
     .unwrap()
 }
 
+fn metadata() -> Metadata {
+    Metadata::new(vec![1; 32], Some(vec![2; 32])).unwrap()
+}
+
 fn envelope(subject: Subject) -> Envelope {
     Envelope::new(subject, Some(vec![2; 72]), vec![1; 72]).unwrap()
 }
@@ -45,7 +49,12 @@ const fn claimant(user: UserId) -> Claimant {
 async fn created(store: &Files, owner: UserId, fill: &str, at: OffsetDateTime) -> FileId {
     let created = File::new(FileId::generate(), owner, None);
     store
-        .create(created, technical(fill, at), envelope(Subject::User(owner)))
+        .create(
+            created,
+            technical(fill, at),
+            metadata(),
+            envelope(Subject::User(owner)),
+        )
         .await;
     created.id()
 }
@@ -355,5 +364,198 @@ async fn purging_spares_live_files() {
             .len(),
         1,
         "уборка корзины стёрла не удалённый файл"
+    );
+}
+
+#[tokio::test]
+async fn owner_sees_the_private_metadata() {
+    let store = files();
+    let owner = UserId::generate();
+    let id = created(&store, owner, "a", now()).await;
+    assert!(
+        store
+            .one(&claimant(owner), id, &[])
+            .await
+            .unwrap()
+            .metadata()
+            .private()
+            .is_some(),
+        "владелец не видит закрытой метаинформации собственного файла"
+    );
+}
+
+#[tokio::test]
+async fn recipient_sees_no_private_metadata() {
+    let store = files();
+    let owner = UserId::generate();
+    let guest = UserId::generate();
+    let id = created(&store, owner, "a", now()).await;
+    let grant = Grant::new(
+        GrantId::generate(),
+        id,
+        Subject::User(guest),
+        Rights::read_only(),
+    );
+    assert!(
+        store
+            .one(&claimant(guest), id, &[grant])
+            .await
+            .unwrap()
+            .metadata()
+            .private()
+            .is_none(),
+        "получателю доступа отдана закрытая метаинформация владельца"
+    );
+}
+
+#[tokio::test]
+async fn recipient_sees_the_public_metadata() {
+    let store = files();
+    let owner = UserId::generate();
+    let guest = UserId::generate();
+    let id = created(&store, owner, "a", now()).await;
+    let grant = Grant::new(
+        GrantId::generate(),
+        id,
+        Subject::User(guest),
+        Rights::read_only(),
+    );
+    assert_eq!(
+        store
+            .one(&claimant(guest), id, &[grant])
+            .await
+            .unwrap()
+            .metadata()
+            .public()
+            .to_vec(),
+        vec![1; 32],
+        "получатель доступа не увидел публичной метаинформации"
+    );
+}
+
+#[tokio::test]
+async fn published_metadata_replaces_the_public_part() {
+    let store = files();
+    let owner = UserId::generate();
+    let id = created(&store, owner, "a", now()).await;
+    store
+        .publish(&claimant(owner), id, &[], vec![9; 16], 1)
+        .await
+        .unwrap();
+    assert_eq!(
+        store
+            .one(&claimant(owner), id, &[])
+            .await
+            .unwrap()
+            .metadata()
+            .public()
+            .to_vec(),
+        vec![9; 16],
+        "публичная метаинформация не заменилась"
+    );
+}
+
+#[tokio::test]
+async fn stale_revision_does_not_overwrite() {
+    let store = files();
+    let owner = UserId::generate();
+    let id = created(&store, owner, "a", now()).await;
+    store
+        .publish(&claimant(owner), id, &[], vec![9; 16], 1)
+        .await
+        .unwrap();
+    assert!(
+        matches!(
+            store
+                .publish(&claimant(owner), id, &[], vec![8; 16], 1)
+                .await,
+            Err(Error::Stale)
+        ),
+        "изменение по устаревшей редакции затёрло чужое"
+    );
+}
+
+#[tokio::test]
+async fn publishing_leaves_the_content_alone() {
+    let store = files();
+    let owner = UserId::generate();
+    let id = created(&store, owner, "a", now()).await;
+    let before = store
+        .one(&claimant(owner), id, &[])
+        .await
+        .unwrap()
+        .technical()
+        .content()
+        .hash()
+        .clone();
+    store
+        .publish(&claimant(owner), id, &[], vec![9; 16], 1)
+        .await
+        .unwrap();
+    assert_eq!(
+        store
+            .one(&claimant(owner), id, &[])
+            .await
+            .unwrap()
+            .technical()
+            .content()
+            .hash(),
+        &before,
+        "замена метаинформации затронула хеш шифротекста"
+    );
+}
+
+#[tokio::test]
+async fn foreign_file_metadata_is_not_published() {
+    let store = files();
+    let owner = UserId::generate();
+    let id = created(&store, owner, "a", now()).await;
+    assert!(
+        matches!(
+            store
+                .publish(&claimant(UserId::generate()), id, &[], vec![9; 16], 1)
+                .await,
+            Err(Error::Missing)
+        ),
+        "метаинформация чужого файла переписана посторонним"
+    );
+}
+
+#[tokio::test]
+async fn concealed_metadata_replaces_the_private_part() {
+    let store = files();
+    let owner = UserId::generate();
+    let id = created(&store, owner, "a", now()).await;
+    store
+        .conceal(&claimant(owner), id, Some(vec![7; 16]), 1)
+        .await
+        .unwrap();
+    assert_eq!(
+        store
+            .one(&claimant(owner), id, &[])
+            .await
+            .unwrap()
+            .metadata()
+            .private()
+            .map(<[u8]>::to_vec),
+        Some(vec![7; 16]),
+        "закрытая метаинформация не заменилась"
+    );
+}
+
+#[tokio::test]
+async fn recipient_does_not_conceal() {
+    let store = files();
+    let owner = UserId::generate();
+    let guest = UserId::generate();
+    let id = created(&store, owner, "a", now()).await;
+    assert!(
+        matches!(
+            store
+                .conceal(&claimant(guest), id, Some(vec![7; 16]), 1)
+                .await,
+            Err(Error::Missing)
+        ),
+        "получатель доступа переписал закрытую метаинформацию владельца"
     );
 }

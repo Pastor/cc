@@ -152,11 +152,13 @@ pub async fn serve(config: &Config) -> anyhow::Result<Server> {
         )),
         Arc::new(Guards::new(Confirmations::new(), Throttle::new(), postbox)),
         Arc::new(federation(config)?),
+        cc_api::Limits::new(
+            config.limits().body_bytes(),
+            config.limits().request(),
+            config.limits().metadata_bytes(),
+        ),
     );
-    let router = cc_api::router(
-        state,
-        cc_api::Limits::new(config.limits().body_bytes(), config.limits().request()),
-    );
+    let router = cc_api::router(state);
     let listener = TcpListener::bind(config.listen())
         .await
         .with_context(|| format!("занятие адреса {}", config.listen()))?;

@@ -140,7 +140,7 @@ impl Entrance for Telegram {
     /// # Errors
     ///
     /// - [`Error::Signature`] — подпись не сошлась;
-    /// - [`Error::Stale`] — данные старше окна свежести либо датированы будущим;
+    /// - [`Error::Expired`] — данные старше окна свежести либо датированы будущим;
     /// - [`Error::Replay`] — те же данные уже предъявлялись;
     /// - [`Error::Malformed`] — обязательных полей нет.
     async fn identity(&self, widget: Widget, now: OffsetDateTime) -> Result<ExternalIdentity> {
@@ -150,7 +150,7 @@ impl Entrance for Telegram {
         }
         let moment = widget.moment()?;
         if moment > now || now - moment > self.window {
-            return Err(Error::Stale);
+            return Err(Error::Expired);
         }
         if !self.remember(widget.subject(), moment).await {
             return Err(Error::Replay);

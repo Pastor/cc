@@ -117,7 +117,7 @@ async fn stale_widget_is_refused() {
             telegram()
                 .identity(widget(HASH), moment() + Duration::minutes(6))
                 .await,
-            Err(Error::Stale)
+            Err(Error::Expired)
         ),
         "данные виджета старше окна свежести приняты"
     );
@@ -130,7 +130,7 @@ async fn widget_from_the_future_is_refused() {
             telegram()
                 .identity(widget(HASH), moment() - Duration::minutes(1))
                 .await,
-            Err(Error::Stale)
+            Err(Error::Expired)
         ),
         "данные виджета, датированные будущим, приняты"
     );

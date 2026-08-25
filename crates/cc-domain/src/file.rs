@@ -146,6 +146,99 @@ impl Technical {
     }
 }
 
+/// Зашифрованная метаинформация файла.
+///
+/// Две категории с разной видимостью защищены **разными ключами**, а не
+/// проверкой прав: сервер физически не способен показать то, чего не может
+/// расшифровать. Публичную разворачивает ключ метаданных файла — он же
+/// оборачивается для каждого получателя; закрытую — ключ учётной записи
+/// владельца, которого нет ни у кого другого (`TODO.md`, раздел 3).
+///
+/// Перевод сведения из закрытой категории в публичную — перешифрование на
+/// клиенте, а не смена признака здесь. Обратный перевод конфиденциальности не
+/// возвращает: получатели значение уже видели.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Metadata {
+    public: Vec<u8>,
+    private: Option<Vec<u8>>,
+    revision: u64,
+}
+
+impl Metadata {
+    /// Принимает метаинформацию, проверяя, что публичная часть не пуста.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::EmptyMetadata`], если публичная часть пуста: в ней лежит имя
+    /// файла, и без неё получатель доступа не увидит даже названия.
+    pub fn new(public: Vec<u8>, private: Option<Vec<u8>>) -> Result<Self> {
+        if public.is_empty() {
+            return Err(Error::EmptyMetadata);
+        }
+        Ok(Self {
+            public,
+            private,
+            revision: 1,
+        })
+    }
+
+    /// Возвращает метаинформацию с заменённой публичной частью.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::EmptyMetadata`], если новая публичная часть пуста.
+    pub fn with_public(self, public: Vec<u8>) -> Result<Self> {
+        if public.is_empty() {
+            return Err(Error::EmptyMetadata);
+        }
+        Ok(Self {
+            public,
+            revision: self.revision + 1,
+            ..self
+        })
+    }
+
+    /// Возвращает метаинформацию с заменённой закрытой частью.
+    #[must_use]
+    pub fn with_private(self, private: Option<Vec<u8>>) -> Self {
+        Self {
+            private,
+            revision: self.revision + 1,
+            ..self
+        }
+    }
+
+    /// Возвращает метаинформацию без закрытой части — для получателя доступа.
+    ///
+    /// Редакция при этом не меняется: сведения не переписаны, а лишь не
+    /// показаны тому, кто и расшифровать их не смог бы.
+    #[must_use]
+    pub fn hidden(self) -> Self {
+        Self {
+            private: None,
+            ..self
+        }
+    }
+
+    /// Публичная часть: видна владельцу и всем, кому выдан доступ.
+    #[must_use]
+    pub fn public(&self) -> &[u8] {
+        &self.public
+    }
+
+    /// Закрытая часть: не передаётся никому, кроме владельца.
+    #[must_use]
+    pub fn private(&self) -> Option<&[u8]> {
+        self.private.as_deref()
+    }
+
+    /// Номер редакции — им же условные запросы отличают версии.
+    #[must_use]
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+}
+
 /// Ключ доступа: обёртки ключей для одного субъекта.
 ///
 /// Ключ метаданных присутствует всегда, иначе получатель не увидит даже имени
@@ -380,7 +473,7 @@ mod tests {
         reason = "в тесте отказ обязан ронять тест, а не обрабатываться"
     )]
 
-    use super::{Content, Envelope, File, Link, Stamps, Subject, Technical};
+    use super::{Content, Envelope, File, Link, Metadata, Stamps, Subject, Technical};
     use crate::error::Error;
     use crate::hash::ContentHash;
     use crate::id::{ContentId, DirectoryId, FileId, LinkId, UserId};
@@ -581,6 +674,92 @@ mod tests {
             .content(),
             Some(&[2_u8; 72][..]),
             "обёртка ключа содержимого искажена при создании"
+        );
+    }
+
+    fn metadata() -> Metadata {
+        Metadata::new(vec![1; 32], Some(vec![2; 32])).unwrap()
+    }
+
+    #[test]
+    fn metadata_without_public_part_is_rejected() {
+        assert!(
+            matches!(
+                Metadata::new(Vec::new(), Some(vec![2; 32])),
+                Err(Error::EmptyMetadata)
+            ),
+            "метаинформация без публичной части принята: получатель не увидит имени"
+        );
+    }
+
+    #[test]
+    fn metadata_without_private_part_is_allowed() {
+        assert!(
+            Metadata::new(vec![1; 32], None)
+                .unwrap()
+                .private()
+                .is_none(),
+            "метаинформация без закрытой части всё же несёт закрытые сведения"
+        );
+    }
+
+    #[test]
+    fn fresh_metadata_starts_at_the_first_revision() {
+        assert_eq!(
+            metadata().revision(),
+            1,
+            "только что созданная метаинформация начата не с первой редакции"
+        );
+    }
+
+    #[test]
+    fn replacing_the_public_part_advances_the_revision() {
+        assert_eq!(
+            metadata().with_public(vec![3; 32]).unwrap().revision(),
+            2,
+            "замена публичной части не сдвинула редакцию"
+        );
+    }
+
+    #[test]
+    fn replacing_the_private_part_advances_the_revision() {
+        assert_eq!(
+            metadata().with_private(None).revision(),
+            2,
+            "замена закрытой части не сдвинула редакцию"
+        );
+    }
+
+    #[test]
+    fn replacing_the_public_part_keeps_the_private_one() {
+        assert_eq!(
+            metadata()
+                .with_public(vec![3; 32])
+                .unwrap()
+                .private()
+                .map(<[u8]>::to_vec),
+            Some(vec![2; 32]),
+            "замена публичной части затронула закрытую"
+        );
+    }
+
+    #[test]
+    fn replacing_the_private_part_keeps_the_public_one() {
+        assert_eq!(
+            metadata().with_private(Some(vec![4; 32])).public().to_vec(),
+            vec![1; 32],
+            "замена закрытой части затронула публичную"
+        );
+    }
+
+    #[test]
+    fn emptying_the_public_part_is_rejected() {
+        assert!(
+            matches!(
+                metadata().with_public(Vec::new()),
+                Err(Error::EmptyMetadata)
+            ),
+            "публичная часть опустошена заменой"
         );
     }
 }

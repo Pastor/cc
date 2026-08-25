@@ -29,13 +29,24 @@ use utoipa_axum::routes;
 pub struct Limits {
     body: usize,
     request: Duration,
+    metadata: usize,
 }
 
 impl Limits {
     /// Собирает пределы.
     #[must_use]
-    pub const fn new(body: usize, request: Duration) -> Self {
-        Self { body, request }
+    pub const fn new(body: usize, request: Duration, metadata: usize) -> Self {
+        Self {
+            body,
+            request,
+            metadata,
+        }
+    }
+
+    /// Наибольший размер одной категории метаинформации.
+    #[must_use]
+    pub const fn metadata(self) -> usize {
+        self.metadata
     }
 }
 
@@ -52,6 +63,8 @@ fn versioned() -> (Router<State>, utoipa::openapi::OpenApi) {
         .routes(routes!(files::create, files::all))
         .routes(routes!(files::one, files::discard))
         .routes(routes!(files::upload, files::download))
+        .routes(routes!(files::publish))
+        .routes(routes!(files::conceal))
         .routes(routes!(sessions::open))
         .routes(routes!(identities::begin))
         .routes(routes!(identities::all, identities::attach))
@@ -71,7 +84,8 @@ pub fn describe() -> utoipa::openapi::OpenApi {
 ///
 /// Служебные маршруты — спецификация, документация, пробы и версия сборки — не
 /// участвуют в версионировании контракта (`TODO.md`, раздел 10.1).
-pub fn router(state: State, limits: Limits) -> Router {
+pub fn router(state: State) -> Router {
+    let limits = state.limits();
     let (api, document) = versioned();
     // Документ публикует сам SwaggerUi по указанному ниже адресу: отдельный
     // маршрут для него привёл бы к двойной регистрации одного пути.

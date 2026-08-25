@@ -7,7 +7,8 @@
 
 use crate::error::{Error, Result};
 use cc_domain::{
-    ByteSize, Claimant, ContentId, Envelope, File, FileId, Grant, Right, Subject, Technical, UserId,
+    ByteSize, Claimant, ContentId, Envelope, File, FileId, Grant, Metadata, Right, Subject,
+    Technical, UserId,
 };
 use std::collections::HashMap;
 use time::{Duration, OffsetDateTime};
@@ -24,6 +25,7 @@ pub const PAGE_DEFAULT: usize = 20;
 struct Record {
     file: File,
     technical: Technical,
+    metadata: Metadata,
     envelopes: Vec<Envelope>,
     discarded: Option<OffsetDateTime>,
 }
@@ -60,6 +62,7 @@ impl Page {
 pub struct Listed {
     file: File,
     technical: Technical,
+    metadata: Metadata,
     envelope: Option<Envelope>,
 }
 
@@ -74,6 +77,16 @@ impl Listed {
     #[must_use]
     pub const fn technical(&self) -> &Technical {
         &self.technical
+    }
+
+    /// Метаинформация в объёме, видимом заявителю.
+    ///
+    /// Закрытая часть остаётся закрытой не потому, что здесь стоит проверка, а
+    /// потому что зашифрована ключом учётной записи владельца. Проверка ниже
+    /// лишь избавляет от бессмысленной пересылки.
+    #[must_use]
+    pub const fn metadata(&self) -> &Metadata {
+        &self.metadata
     }
 
     /// Ключ доступа заявителя, если он у файла есть.
@@ -139,10 +152,17 @@ impl Files {
     /// Содержимое приходит отдельным обращением: сервер уже знает его размер и
     /// хеш и сверит их при приёме (`TODO.md`, раздел 4.6).
     #[tracing::instrument(skip_all, fields(file = %file.id(), owner = %file.owner()))]
-    pub async fn create(&self, file: File, technical: Technical, owner: Envelope) {
+    pub async fn create(
+        &self,
+        file: File,
+        technical: Technical,
+        metadata: Metadata,
+        owner: Envelope,
+    ) {
         let record = Record {
             file,
             technical,
+            metadata,
             envelopes: vec![owner],
             discarded: None,
         };
@@ -206,6 +226,76 @@ impl Files {
             files,
             next: next.flatten(),
         }
+    }
+
+    /// Заменяет публичную метаинформацию.
+    ///
+    /// Шифротекста содержимого операция не касается: метаинформация живёт
+    /// отдельно (`TODO.md`, раздел 4.6, пункт 8).
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Missing`] — файла нет, он в корзине либо записывать в него
+    ///   заявителю не разрешено;
+    /// - [`Error::Stale`] — предъявленная редакция разошлась с текущей: чужое
+    ///   изменение затирать нельзя;
+    /// - [`Error::Domain`] — публичная часть пуста.
+    pub async fn publish(
+        &self,
+        claimant: &Claimant,
+        id: FileId,
+        grants: &[Grant],
+        public: Vec<u8>,
+        expected: u64,
+    ) -> Result<u64> {
+        self.rewrite(claimant, id, grants, expected, false, |metadata| {
+            metadata.with_public(public).map_err(Error::Domain)
+        })
+        .await
+    }
+
+    /// Заменяет закрытую метаинформацию.
+    ///
+    /// Только владелец: закрытая часть зашифрована ключом его учётной записи, и
+    /// никому другому её ни прочитать, ни осмысленно переписать.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Missing`] — файла нет, он в корзине либо заявитель не
+    ///   владелец;
+    /// - [`Error::Stale`] — предъявленная редакция разошлась с текущей.
+    pub async fn conceal(
+        &self,
+        claimant: &Claimant,
+        id: FileId,
+        private: Option<Vec<u8>>,
+        expected: u64,
+    ) -> Result<u64> {
+        self.rewrite(claimant, id, &[], expected, true, move |metadata| {
+            Ok(metadata.with_private(private))
+        })
+        .await
+    }
+
+    /// Заменяет метаинформацию под проверкой редакции.
+    async fn rewrite(
+        &self,
+        claimant: &Claimant,
+        id: FileId,
+        grants: &[Grant],
+        expected: u64,
+        owner_only: bool,
+        change: impl FnOnce(Metadata) -> Result<Metadata>,
+    ) -> Result<u64> {
+        let mut records = self.records.write().await;
+        let outcome = match records.get_mut(&id) {
+            Some(record) if record.discarded.is_none() => {
+                rewritten(record, claimant, grants, expected, owner_only, change)
+            }
+            _ => Err(Error::Missing),
+        };
+        drop(records);
+        outcome
     }
 
     /// Присоединяет загруженное содержимое, отмечая изменение.
@@ -336,11 +426,40 @@ fn listed(record: &Record, claimant: &Claimant, grants: &[Grant]) -> Option<List
         .iter()
         .find(|envelope| envelope.subject() == claimant.subject())
         .cloned();
+    let owns = claimant.subject() == Subject::User(record.file.owner());
+    let metadata = if owns {
+        record.metadata.clone()
+    } else {
+        record.metadata.clone().hidden()
+    };
     Some(Listed {
         file: record.file,
         technical: record.technical.clone(),
+        metadata,
         envelope,
     })
+}
+
+/// Заменяет метаинформацию записи, проверив права и редакцию.
+fn rewritten(
+    record: &mut Record,
+    claimant: &Claimant,
+    grants: &[Grant],
+    expected: u64,
+    owner_only: bool,
+    change: impl FnOnce(Metadata) -> Result<Metadata>,
+) -> Result<u64> {
+    if owner_only && claimant.subject() != Subject::User(record.file.owner()) {
+        return Err(Error::Missing);
+    }
+    cc_domain::permit(claimant, &record.file, grants, Right::Write).map_err(|_| Error::Missing)?;
+    if record.metadata.revision() != expected {
+        return Err(Error::Stale);
+    }
+    let changed = change(record.metadata.clone())?;
+    let revision = changed.revision();
+    record.metadata = changed;
+    Ok(revision)
 }
 
 /// Владелец файла как субъект доступа.

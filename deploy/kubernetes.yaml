@@ -47,6 +47,8 @@ spec:
               value: "5"
             - name: CC_LIMITS__TRASH_DAYS
               value: "30"
+            - name: CC_LIMITS__METADATA_BYTES
+              value: "65536"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

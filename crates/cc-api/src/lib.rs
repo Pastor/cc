@@ -22,7 +22,10 @@ mod version;
 
 pub use auth::Authenticated;
 pub use bytes::Binary;
-pub use files::{Creation, Declared, Described, Listing, Paging, Recorded, Wrapping};
+pub use files::{
+    Categories, Concealment, Creation, Declared, Described, Listing, Paging, Publication, Recorded,
+    Wrapping,
+};
 pub use identities::{Attachment, Linked, Requested, Returned, Started};
 pub use observe::trace;
 pub use problem::{stamp, Failure, Problem};

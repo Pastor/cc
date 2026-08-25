@@ -128,6 +128,12 @@ pub enum Failure {
     /// Условие `If-Match` не выполнено.
     #[error("условие If-Match не выполнено")]
     ConditionFailed,
+    /// Операция не разрешена, хотя ресурс виден.
+    #[error("операция не разрешена")]
+    Forbidden,
+    /// Значение длиннее допустимого предела.
+    #[error("значение длиннее допустимого предела")]
+    TooLarge,
     /// Запрошенный диапазон вне содержимого.
     #[error("запрошенный диапазон вне содержимого")]
     Unsatisfiable,
@@ -152,7 +158,9 @@ impl Failure {
         match self {
             Self::Domain(cc_domain::Error::AccessDenied)
             | Self::Storage(cc_storage::Error::Missing) => StatusCode::NOT_FOUND,
-            Self::Domain(cc_domain::Error::RightsEscalation) => StatusCode::FORBIDDEN,
+            Self::Domain(cc_domain::Error::RightsEscalation) | Self::Forbidden => {
+                StatusCode::FORBIDDEN
+            }
             Self::Domain(cc_domain::Error::QuotaOverrun) => StatusCode::INSUFFICIENT_STORAGE,
             Self::Domain(_) | Self::Storage(cc_storage::Error::ContentMismatch) => {
                 StatusCode::UNPROCESSABLE_ENTITY
@@ -163,16 +171,21 @@ impl Failure {
             // Данные провайдера проверяются криптографически: сказать, что они
             // не приняты, оракулом чужих записей не работает.
             Self::Storage(
-                cc_storage::Error::Signature | cc_storage::Error::Stale | cc_storage::Error::Replay,
+                cc_storage::Error::Signature
+                | cc_storage::Error::Expired
+                | cc_storage::Error::Replay,
             )
             | Self::Unauthenticated => StatusCode::UNAUTHORIZED,
             Self::Storage(cc_storage::Error::Malformed) | Self::Malformed => {
                 StatusCode::BAD_REQUEST
             }
+            Self::Storage(cc_storage::Error::Stale) | Self::ConditionFailed => {
+                StatusCode::PRECONDITION_FAILED
+            }
             Self::Storage(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::ConditionRequired => StatusCode::PRECONDITION_REQUIRED,
-            Self::ConditionFailed => StatusCode::PRECONDITION_FAILED,
             Self::Unsatisfiable => StatusCode::RANGE_NOT_SATISFIABLE,
+            Self::TooLarge => StatusCode::PAYLOAD_TOO_LARGE,
             Self::TooManyRequests | Self::TooSoon { .. } => StatusCode::TOO_MANY_REQUESTS,
         }
     }

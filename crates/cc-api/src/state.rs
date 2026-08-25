@@ -15,6 +15,7 @@ pub struct State {
     stores: Arc<Stores>,
     guards: Arc<Guards>,
     federation: Arc<Federation>,
+    limits: crate::router::Limits,
 }
 
 /// Хранилища сервиса.
@@ -150,12 +151,20 @@ impl State {
         stores: Arc<Stores>,
         guards: Arc<Guards>,
         federation: Arc<Federation>,
+        limits: crate::router::Limits,
     ) -> Self {
         Self {
             stores,
             guards,
             federation,
+            limits,
         }
+    }
+
+    /// Пределы, применяемые к запросам.
+    #[must_use]
+    pub const fn limits(&self) -> crate::router::Limits {
+        self.limits
     }
 
     /// Пользователи.

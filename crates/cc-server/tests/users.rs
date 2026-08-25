@@ -27,6 +27,7 @@ request_seconds = 5
 session_hours = 1
 authorization_minutes = 5
 trash_days = 30
+metadata_bytes = 65536
 "#,
         storage.display()
     )

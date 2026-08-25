@@ -42,6 +42,7 @@ docker run --detach --name "$name" \
     --env CC_LIMITS__SESSION_HOURS=12 \
     --env CC_LIMITS__AUTHORIZATION_MINUTES=5 \
     --env CC_LIMITS__TRASH_DAYS=30 \
+    --env CC_LIMITS__METADATA_BYTES=65536 \
     "$image" >/dev/null
 
 address=$(docker port "$name" 8080/tcp | head -1)
