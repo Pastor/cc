@@ -1,0 +1,90 @@
+# Ворота качества: изменение не считается готовым, пока они не пройдены.
+#
+# Пять ворот заданы RULE.md, шестые — сверка спецификации OpenAPI с маршрутами —
+# добавлены CLAUDE.md. Проверка на unwrap и expect вынесена отдельным шагом:
+# RULE.md требует ронять сборку, если они появились на рабочих путях.
+
+name: Ворота качества
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  gates:
+    name: Проверки
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain из rust-toolchain.toml
+        run: rustup show
+
+      - name: Кэш сборки
+        uses: Swatinem/rust-cache@v2
+
+      - name: Проверка типов
+        run: cargo check --all-targets
+
+      - name: Линты
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Форматирование
+        run: cargo fmt --all -- --check
+
+      - name: Тесты со всеми возможностями
+        run: cargo test --all-features --workspace
+
+      - name: Тесты без возможностей по умолчанию
+        run: cargo test --no-default-features --workspace
+
+      - name: Документация
+        run: cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+      - name: Отсутствие unwrap и expect на рабочих путях
+        run: ./scripts/no-unwrap.sh
+
+  wasm:
+    name: Сборка под WebAssembly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain и цель wasm32
+        run: |
+          rustup show
+          rustup target add wasm32-unknown-unknown
+
+      - name: Кэш сборки
+        uses: Swatinem/rust-cache@v2
+
+      - name: Клиентское ядро под WebAssembly
+        run: cargo build -p cc-client --target wasm32-unknown-unknown --no-default-features
+
+  release:
+    name: Релизная сборка
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain и цель
+        run: |
+          rustup show
+          rustup target add ${{ matrix.target }}
+
+      - name: Кросс-компиляция
+        run: |
+          cargo install cross --locked
+          cross build --release --target ${{ matrix.target }} -p cc-server

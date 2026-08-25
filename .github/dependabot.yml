@@ -1,0 +1,13 @@
+# Dependabot следит за тем, что не покрывает еженедельное обновление Cargo.lock:
+# за версиями в манифестах и за действиями сборочного конвейера.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

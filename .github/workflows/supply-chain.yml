@@ -1,0 +1,46 @@
+# Проверки цепочки поставок.
+#
+# Прежний проект накопил уязвимые и мёртвые зависимости: BouncyCastle 2016 года,
+# Jetty с истёкшей поддержкой, а также Spring, JPA и Hibernate, не
+# использовавшиеся ни строчкой кода. Проверки ниже не дают повторить это.
+
+name: Цепочка поставок
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # Известные уязвимости появляются и без наших изменений.
+    - cron: "0 6 * * 1"
+
+jobs:
+  audit:
+    name: Известные уязвимости
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit --deny warnings
+
+  deny:
+    name: Лицензии, источники и дубликаты
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-deny --locked
+      - run: cargo deny check
+
+  unused:
+    name: Неиспользуемые зависимости
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-machete --locked
+      - run: cargo machete
