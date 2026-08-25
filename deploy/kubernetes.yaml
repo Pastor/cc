@@ -1,0 +1,67 @@
+# Пример развёртывания.
+#
+# TLS терминируется входным контроллером перед сервером (TODO.md, раздел 10.2):
+# сам сервер слушает открытый порт внутри доверенного периметра.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cstorage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cstorage
+  template:
+    metadata:
+      labels:
+        app: cstorage
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cstorage
+          image: cstorage:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: CC_LISTEN
+              value: "0.0.0.0:8080"
+            - name: CC_STORAGE
+              value: /var/lib/cstorage
+            # Секрет не имеет значения по умолчанию: без него сервер не
+            # запустится, и это сделано намеренно.
+            - name: CC_SECRETS__SERVER
+              valueFrom:
+                secretKeyRef:
+                  name: cstorage
+                  key: server-secret
+            - name: CC_LIMITS__BODY_BYTES
+              value: "16777216"
+            - name: CC_LIMITS__REQUEST_SECONDS
+              value: "30"
+            - name: CC_LIMITS__SESSION_HOURS
+              value: "12"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/cstorage
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            # Локальный том, а не сетевой: SQLite на сетевой файловой системе
+            # повреждается (TODO.md, TASK-051).
+            claimName: cstorage

@@ -139,6 +139,18 @@ pub(crate) async fn enroll(
             OffsetDateTime::now_utc(),
         )
         .await?;
+    // Код подтверждения выпускается и уходит в очередь: регистрация отвечает,
+    // не дожидаясь отправки.
+    let code = confirmation_code();
+    state
+        .guards()
+        .confirmations()
+        .issue(user.login().clone(), &code, OffsetDateTime::now_utc())
+        .await;
+    state
+        .guards()
+        .postbox()
+        .post(cc_storage::Letter::new(user.login().to_string(), code));
     let location = format!("/api/users/{}", user.id());
     Ok((
         StatusCode::CREATED,
@@ -243,6 +255,21 @@ pub(crate) async fn prelude(
             parallelism: challenge.params().parallelism(),
         },
     }))
+}
+
+/// Порождает код подтверждения.
+///
+/// Шесть цифр — компромисс между переписыванием вручную и стойкостью; перебор
+/// закрывается ограничением числа попыток, а не длиной кода.
+fn confirmation_code() -> String {
+    let bytes = cc_crypto::ContentKey::generate();
+    let number = u32::from_le_bytes([
+        bytes.expose()[0],
+        bytes.expose()[1],
+        bytes.expose()[2],
+        bytes.expose()[3],
+    ]);
+    format!("{:06}", number % 1_000_000)
 }
 
 /// Строит представление учётной записи.

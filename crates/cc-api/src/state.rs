@@ -1,6 +1,6 @@
 //! Разделяемое состояние приложения.
 
-use cc_storage::{Blobs, Confirmations, Sessions, Throttle, Users};
+use cc_storage::{Blobs, Confirmations, Postbox, Sessions, Throttle, Users};
 use std::sync::Arc;
 
 /// То, что обработчики получают от приложения.
@@ -19,15 +19,17 @@ pub struct State {
 pub struct Guards {
     confirmations: Confirmations,
     throttle: Throttle,
+    postbox: Postbox,
 }
 
 impl Guards {
     /// Собирает защиту.
     #[must_use]
-    pub const fn new(confirmations: Confirmations, throttle: Throttle) -> Self {
+    pub const fn new(confirmations: Confirmations, throttle: Throttle, postbox: Postbox) -> Self {
         Self {
             confirmations,
             throttle,
+            postbox,
         }
     }
 
@@ -41,6 +43,12 @@ impl Guards {
     #[must_use]
     pub const fn throttle(&self) -> &Throttle {
         &self.throttle
+    }
+
+    /// Очередь писем подтверждения.
+    #[must_use]
+    pub const fn postbox(&self) -> &Postbox {
+        &self.postbox
     }
 }
 

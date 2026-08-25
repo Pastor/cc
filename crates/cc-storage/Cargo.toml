@@ -7,8 +7,15 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+# Отправка почты по SMTP. Выключена по умолчанию: без настроенного релея она
+# бесполезна, а зависимость тянет за собой TLS-стек.
+default = []
+smtp = ["dep:lettre"]
+
 [dependencies]
 cc-crypto.workspace = true
+lettre = { workspace = true, optional = true }
 cc-domain.workspace = true
 subtle.workspace = true
 thiserror.workspace = true

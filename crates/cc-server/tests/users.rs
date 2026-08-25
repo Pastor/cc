@@ -201,3 +201,29 @@ async fn prelude_is_stable_for_unknown_login() {
         "правдоподобные параметры меняются между запросами и потому распознаются"
     );
 }
+
+#[tokio::test]
+async fn registration_does_not_wait_for_the_letter() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let before = std::time::Instant::now();
+    let (status, _) = post(&server, "/api/users", &enrollment("letter@example.com")).await;
+    let elapsed = before.elapsed();
+    server.stop().await.unwrap();
+    assert!(
+        status == 201 && elapsed < std::time::Duration::from_secs(2),
+        "регистрация ждала отправки письма: код {status}, время {elapsed:?}"
+    );
+}
+
+#[tokio::test]
+async fn registration_response_hides_the_confirmation_code() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (_, response) = post(&server, "/api/users", &enrollment("secret@example.com")).await;
+    server.stop().await.unwrap();
+    assert!(
+        !response.contains("\"code\"") && !response.contains("\"confirmation\""),
+        "код подтверждения виден в ответе: письмо становится ненужным"
+    );
+}

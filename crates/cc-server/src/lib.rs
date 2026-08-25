@@ -11,7 +11,7 @@ pub use config::{Config, Limits, Secrets};
 use anyhow::Context as _;
 use cc_api::Guards;
 use cc_api::State;
-use cc_storage::{Blobs, Confirmations, Sessions, Throttle, Users};
+use cc_storage::{Blobs, Confirmations, Discarded, Postbox, Sessions, Throttle, Users};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -22,8 +22,19 @@ use tracing_subscriber::EnvFilter;
 pub struct Server {
     address: SocketAddr,
     shutdown: tokio::sync::watch::Sender<bool>,
+    tasks: Tasks,
+}
+
+/// Задачи, порождённые сервером.
+///
+/// Все они дожидаются при остановке: брошенная задача переживает graceful
+/// shutdown, а очередь писем при этом теряет уже принятые у пользователя
+/// подтверждения.
+#[derive(Debug)]
+struct Tasks {
     serving: tokio::task::JoinHandle<std::io::Result<()>>,
     sweeping: tokio::task::JoinHandle<()>,
+    posting: tokio::task::JoinHandle<()>,
 }
 
 impl Server {
@@ -46,11 +57,19 @@ impl Server {
     /// Возвращает ошибку, если задача обслуживания завершилась отказом.
     pub async fn stop(self) -> anyhow::Result<()> {
         let _ = self.shutdown.send(true);
-        self.serving
+        self.tasks
+            .serving
             .await
             .context("ожидание задачи обслуживания")?
             .context("обслуживание соединений")?;
-        self.sweeping.await.context("ожидание задачи чистки")?;
+        self.tasks
+            .sweeping
+            .await
+            .context("ожидание задачи чистки")?;
+        self.tasks
+            .posting
+            .await
+            .context("ожидание задачи доставки писем")?;
         Ok(())
     }
 }
@@ -69,11 +88,15 @@ pub async fn serve(config: &Config) -> anyhow::Result<Server> {
         cc_crypto_params(),
     ));
     let sessions = Arc::new(Sessions::new(config.limits().session()));
+    // Транспорт по умолчанию ничего не отправляет: без настроенного релея
+    // регистрация не должна ломаться из-за письма. Настоящий транспорт
+    // подключается feature `smtp` крейта cc-storage.
+    let (postbox, posting) = Postbox::new(Arc::new(Discarded));
     let state = State::new(
         users,
         Arc::clone(&sessions),
         Arc::new(blobs),
-        Arc::new(Guards::new(Confirmations::new(), Throttle::new())),
+        Arc::new(Guards::new(Confirmations::new(), Throttle::new(), postbox)),
     );
     let router = cc_api::router(
         state,
@@ -105,8 +128,11 @@ pub async fn serve(config: &Config) -> anyhow::Result<Server> {
     Ok(Server {
         address,
         shutdown,
-        serving,
-        sweeping,
+        tasks: Tasks {
+            serving,
+            sweeping,
+            posting,
+        },
     })
 }
 
