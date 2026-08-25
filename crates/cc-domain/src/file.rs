@@ -4,6 +4,7 @@
 //! реализация смешивала их в одном типе и именовала файл на диске хешем
 //! содержимого, из-за чего файлы разных владельцев затирали друг друга.
 
+use crate::error::{Error, Result};
 use crate::hash::ContentHash;
 use crate::id::{ContentId, DirectoryId, FileId, GrantId, LinkId, UserId};
 use crate::quota::ByteSize;
@@ -45,6 +46,152 @@ impl Content {
     #[must_use]
     pub const fn size(&self) -> ByteSize {
         self.size
+    }
+}
+
+/// Времена жизни файла.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Stamps {
+    created: OffsetDateTime,
+    modified: OffsetDateTime,
+}
+
+impl Stamps {
+    /// Заводит времена для нового файла.
+    #[must_use]
+    pub const fn new(moment: OffsetDateTime) -> Self {
+        Self {
+            created: moment,
+            modified: moment,
+        }
+    }
+
+    /// Возвращает времена с отмеченным изменением.
+    #[must_use]
+    pub const fn touched(self, moment: OffsetDateTime) -> Self {
+        Self {
+            modified: moment,
+            ..self
+        }
+    }
+
+    /// Время создания.
+    #[must_use]
+    pub const fn created_at(self) -> OffsetDateTime {
+        self.created
+    }
+
+    /// Время последнего изменения.
+    #[must_use]
+    pub const fn modified_at(self) -> OffsetDateTime {
+        self.modified
+    }
+}
+
+/// Техническая метаинформация файла.
+///
+/// Единственная категория, открытая серверу: он её и заполняет. Клиент
+/// заявляет размер и хеш шифротекста при создании файла, а сервер сверяет их
+/// при приёме содержимого (`TODO.md`, раздел 3).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Technical {
+    content: Content,
+    format: u8,
+    stamps: Stamps,
+}
+
+impl Technical {
+    /// Заводит техническую метаинформацию, проверяя версию формата.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::UnsupportedFormat`], если версия формата нулевая: формат
+    /// шифрования начинается с первой версии.
+    pub fn new(content: Content, format: u8, stamps: Stamps) -> Result<Self> {
+        if format == 0 {
+            return Err(Error::UnsupportedFormat);
+        }
+        Ok(Self {
+            content,
+            format,
+            stamps,
+        })
+    }
+
+    /// Возвращает метаинформацию с отмеченным изменением.
+    #[must_use]
+    pub fn touched(self, moment: OffsetDateTime) -> Self {
+        Self {
+            stamps: self.stamps.touched(moment),
+            ..self
+        }
+    }
+
+    /// Описание содержимого: идентификатор, хеш и размер шифротекста.
+    #[must_use]
+    pub const fn content(&self) -> &Content {
+        &self.content
+    }
+
+    /// Версия формата шифрования содержимого.
+    #[must_use]
+    pub const fn format(&self) -> u8 {
+        self.format
+    }
+
+    /// Времена создания и изменения.
+    #[must_use]
+    pub const fn stamps(&self) -> Stamps {
+        self.stamps
+    }
+}
+
+/// Ключ доступа: обёртки ключей для одного субъекта.
+///
+/// Ключ метаданных присутствует всегда, иначе получатель не увидит даже имени
+/// файла. Ключ содержимого — только если выдано право читать содержимое
+/// (`TODO.md`, раздел 3).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Envelope {
+    subject: Subject,
+    content: Option<Vec<u8>>,
+    metadata: Vec<u8>,
+}
+
+impl Envelope {
+    /// Собирает ключ доступа, проверяя, что ключ метаданных не пуст.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::EmptyEnvelope`], если обёртка ключа метаданных пуста: субъект
+    /// без неё не увидит ничего и такой записи быть не должно.
+    pub fn new(subject: Subject, content: Option<Vec<u8>>, metadata: Vec<u8>) -> Result<Self> {
+        if metadata.is_empty() {
+            return Err(Error::EmptyEnvelope);
+        }
+        Ok(Self {
+            subject,
+            content,
+            metadata,
+        })
+    }
+
+    /// Субъект, которому предназначены обёртки.
+    #[must_use]
+    pub const fn subject(&self) -> Subject {
+        self.subject
+    }
+
+    /// Обёрнутый ключ содержимого, если право читать содержимое выдано.
+    #[must_use]
+    pub fn content(&self) -> Option<&[u8]> {
+        self.content.as_deref()
+    }
+
+    /// Обёрнутый ключ метаданных.
+    #[must_use]
+    pub fn metadata(&self) -> &[u8] {
+        &self.metadata
     }
 }
 
@@ -233,7 +380,8 @@ mod tests {
         reason = "в тесте отказ обязан ронять тест, а не обрабатываться"
     )]
 
-    use super::{Content, File, Link};
+    use super::{Content, Envelope, File, Link, Stamps, Subject, Technical};
+    use crate::error::Error;
     use crate::hash::ContentHash;
     use crate::id::{ContentId, DirectoryId, FileId, LinkId, UserId};
     use crate::quota::ByteSize;
@@ -337,6 +485,102 @@ mod tests {
         assert!(
             !link.expired_at(deadline - Duration::seconds(1)),
             "действующая ссылка признана истёкшей"
+        );
+    }
+
+    fn content() -> Content {
+        Content::new(
+            ContentId::generate(),
+            ContentHash::new("a".repeat(64)).unwrap(),
+            ByteSize::new(4096),
+        )
+    }
+
+    fn stamps() -> Stamps {
+        Stamps::new(OffsetDateTime::UNIX_EPOCH)
+    }
+
+    #[test]
+    fn technical_metadata_keeps_the_format() {
+        assert_eq!(
+            Technical::new(content(), 1, stamps()).unwrap().format(),
+            1,
+            "версия формата шифрования искажена при создании"
+        );
+    }
+
+    #[test]
+    fn zero_format_is_rejected() {
+        assert!(
+            matches!(
+                Technical::new(content(), 0, stamps()),
+                Err(Error::UnsupportedFormat)
+            ),
+            "нулевая версия формата шифрования принята"
+        );
+    }
+
+    #[test]
+    fn touching_moves_the_modification_stamp() {
+        let moment = OffsetDateTime::UNIX_EPOCH + Duration::hours(1);
+        assert_eq!(
+            Technical::new(content(), 1, stamps())
+                .unwrap()
+                .touched(moment)
+                .stamps()
+                .modified_at(),
+            moment,
+            "изменение не отмечено во временах файла"
+        );
+    }
+
+    #[test]
+    fn touching_keeps_the_creation_stamp() {
+        assert_eq!(
+            Technical::new(content(), 1, stamps())
+                .unwrap()
+                .touched(OffsetDateTime::UNIX_EPOCH + Duration::hours(1))
+                .stamps()
+                .created_at(),
+            OffsetDateTime::UNIX_EPOCH,
+            "изменение сдвинуло время создания файла"
+        );
+    }
+
+    #[test]
+    fn envelope_without_metadata_key_is_rejected() {
+        assert!(
+            matches!(
+                Envelope::new(Subject::User(UserId::generate()), None, Vec::new()),
+                Err(Error::EmptyEnvelope)
+            ),
+            "ключ доступа без обёртки ключа метаданных принят"
+        );
+    }
+
+    #[test]
+    fn envelope_without_content_key_is_allowed() {
+        assert!(
+            Envelope::new(Subject::User(UserId::generate()), None, vec![1; 72])
+                .unwrap()
+                .content()
+                .is_none(),
+            "ключ доступа без права читать содержимое всё же несёт ключ содержимого"
+        );
+    }
+
+    #[test]
+    fn envelope_keeps_its_content_key() {
+        assert_eq!(
+            Envelope::new(
+                Subject::User(UserId::generate()),
+                Some(vec![2; 72]),
+                vec![1; 72]
+            )
+            .unwrap()
+            .content(),
+            Some(&[2_u8; 72][..]),
+            "обёртка ключа содержимого искажена при создании"
         );
     }
 }
