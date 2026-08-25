@@ -11,7 +11,7 @@ use utoipa::{Modify, OpenApi};
 #[derive(Debug, OpenApi)]
 #[openapi(
     info(
-        title = "cstorage",
+        title = "cStore",
         description = "Криптографическое файловое хранилище. Сервер хранит только \
                        шифротекст и обёрнутые ключи: расшифровать содержимое он не \
                        может ни в покое, ни во время работы.",

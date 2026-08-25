@@ -24,10 +24,10 @@ const TAG_LEN: usize = 16;
 pub const PUBLIC_KEY_LEN: usize = 32;
 
 /// Метка симметричной обёртки в связанных данных.
-const DOMAIN_SYMMETRIC: &[u8] = b"cstorage.wrap.symmetric.v1";
+const DOMAIN_SYMMETRIC: &[u8] = b"cStore.wrap.symmetric.v1";
 
 /// Метка асимметричной обёртки в связанных данных.
-const DOMAIN_ASYMMETRIC: &[u8] = b"cstorage.wrap.asymmetric.v1";
+const DOMAIN_ASYMMETRIC: &[u8] = b"cStore.wrap.asymmetric.v1";
 
 /// Открытый ключ пользователя.
 ///

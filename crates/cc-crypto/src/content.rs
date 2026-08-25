@@ -29,7 +29,7 @@ pub const BLOCK_SIZE_MIN: u32 = 4 * 1024;
 pub const BLOCK_SIZE_MAX: u32 = 1024 * 1024;
 
 /// Метка формата в связанных данных.
-const DOMAIN: &[u8] = b"cstorage.content.v1";
+const DOMAIN: &[u8] = b"cStore.content.v1";
 
 /// Размер блока открытого текста.
 ///

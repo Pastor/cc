@@ -63,7 +63,7 @@ impl StoredAuth {
 }
 
 /// Метка ветви для правдоподобной соли.
-const BRANCH_DECOY: &[u8] = b"cstorage.decoy.salt.v1";
+const BRANCH_DECOY: &[u8] = b"cStore.decoy.salt.v1";
 
 /// Выводит правдоподобную соль для неизвестного логина.
 ///

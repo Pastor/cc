@@ -40,9 +40,9 @@ USER nonroot:nonroot
 
 # Корень хранилища монтируется извне: предположений о файловой системе хоста
 # образ не делает.
-VOLUME ["/var/lib/cstorage"]
+VOLUME ["/var/lib/cStore"]
 
-ENV CC_STORAGE=/var/lib/cstorage \
+ENV CC_STORAGE=/var/lib/cStore \
     CC_LISTEN=0.0.0.0:8080
 
 EXPOSE 8080

@@ -5,37 +5,37 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cstorage
+  name: cStore
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cstorage
+      app: cStore
   template:
     metadata:
       labels:
-        app: cstorage
+        app: cStore
     spec:
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: cstorage
-          image: cstorage:latest
+        - name: cStore
+          image: cStore:latest
           ports:
             - containerPort: 8080
           env:
             - name: CC_LISTEN
               value: "0.0.0.0:8080"
             - name: CC_STORAGE
-              value: /var/lib/cstorage
+              value: /var/lib/cStore
             # Секрет не имеет значения по умолчанию: без него сервер не
             # запустится, и это сделано намеренно.
             - name: CC_SECRETS__SERVER
               valueFrom:
                 secretKeyRef:
-                  name: cstorage
+                  name: cStore
                   key: server-secret
             - name: CC_LIMITS__BODY_BYTES
               value: "16777216"
@@ -58,10 +58,10 @@ spec:
               port: 8080
           volumeMounts:
             - name: storage
-              mountPath: /var/lib/cstorage
+              mountPath: /var/lib/cStore
       volumes:
         - name: storage
           persistentVolumeClaim:
             # Локальный том, а не сетевой: SQLite на сетевой файловой системе
             # повреждается (TODO.md, TASK-051).
-            claimName: cstorage
+            claimName: cStore

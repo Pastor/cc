@@ -119,9 +119,9 @@ impl Salt {
 ///
 /// Версия входит в метку, чтобы смена схемы выведения не давала совпадающих
 /// ключей со старой.
-const BRANCH_AUTH: &[u8] = b"cstorage.branch.auth.v1";
-const BRANCH_ENCRYPTION: &[u8] = b"cstorage.branch.enc.v1";
-const BRANCH_TAGS: &[u8] = b"cstorage.branch.tags.v1";
+const BRANCH_AUTH: &[u8] = b"cStore.branch.auth.v1";
+const BRANCH_ENCRYPTION: &[u8] = b"cStore.branch.enc.v1";
+const BRANCH_TAGS: &[u8] = b"cStore.branch.tags.v1";
 
 impl MasterKey {
     /// Выводит аутентификационный хеш — единственное, что уходит на сервер.

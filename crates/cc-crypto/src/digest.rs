@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 pub const HASH_LEN: usize = 32;
 
 /// Метка формата в вычислении метки тега.
-const DOMAIN_TAG: &[u8] = b"cstorage.tag.v1";
+const DOMAIN_TAG: &[u8] = b"cStore.tag.v1";
 
 /// Хеш шифротекста.
 ///
