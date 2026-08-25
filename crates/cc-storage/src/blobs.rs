@@ -45,6 +45,7 @@ impl Blobs {
     /// - [`Error::Io`] — отказ файловой системы;
     /// - [`Error::ContentMismatch`] — размер или хеш не совпали с заявленными;
     /// - [`Error::PathEscape`] — построенный путь выходит за пределы корня.
+    #[tracing::instrument(skip(self, ciphertext), fields(content = %id, size = size.get()), err)]
     pub async fn put(
         &self,
         id: ContentId,
@@ -116,6 +117,7 @@ impl Blobs {
     /// # Errors
     ///
     /// [`Error::Io`] при отказе файловой системы.
+    #[tracing::instrument(skip(self), fields(content = %id), err)]
     pub async fn remove(&self, id: ContentId) -> Result<()> {
         let path = self.path(id)?;
         match fs::remove_file(&path).await {

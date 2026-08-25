@@ -11,6 +11,7 @@ cc-crypto.workspace = true
 cc-domain.workspace = true
 subtle.workspace = true
 thiserror.workspace = true
+tracing.workspace = true
 time.workspace = true
 tokio = { workspace = true, features = ["sync", "fs", "io-util", "rt", "time", "macros"] }
 

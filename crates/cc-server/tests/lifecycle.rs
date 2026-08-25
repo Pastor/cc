@@ -346,3 +346,20 @@ async fn specification_ignores_the_version_header() {
         "спецификация отвергнута из-за версии контракта, хотя вне её"
     );
 }
+
+#[tokio::test]
+async fn version_header_reaches_the_journal() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (status, _) = request_with(
+        server.address(),
+        "/api/users/nobody@example.com/prelude",
+        "API-Version: 1\r\n",
+    )
+    .await;
+    server.stop().await.unwrap();
+    assert_eq!(
+        status, 200,
+        "запрос с объявленной версией не обслужен: поле версии некому записать"
+    );
+}

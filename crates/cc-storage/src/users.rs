@@ -56,6 +56,7 @@ impl Users {
     ///
     /// - [`Error::LoginTaken`] — логин уже занят;
     /// - [`Error::Crypto`] — укрепление аутентификационного хеша не удалось.
+    #[tracing::instrument(skip_all, fields(login = %login), err)]
     pub async fn register(
         &self,
         login: Username,
@@ -115,6 +116,7 @@ impl Users {
     /// # Errors
     ///
     /// [`Error::Missing`] — логин неизвестен либо хеш не сошёлся.
+    #[tracing::instrument(skip_all, fields(login = %login), err)]
     pub async fn authenticate(&self, login: &Username, auth: &AuthHash) -> Result<(User, Wrapped)> {
         let presented = self.harden(auth)?;
         let found = {
@@ -138,6 +140,7 @@ impl Users {
     ///
     /// - [`Error::Missing`] — логин неизвестен либо прежний хеш не сошёлся;
     /// - [`Error::Crypto`] — укрепление нового хеша не удалось.
+    #[tracing::instrument(skip_all, fields(login = %login), err)]
     pub async fn change_password(
         &self,
         login: &Username,

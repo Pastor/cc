@@ -7,6 +7,7 @@
 
 mod auth;
 mod bytes;
+mod observe;
 mod problem;
 mod router;
 mod sessions;
@@ -17,6 +18,7 @@ mod version;
 
 pub use auth::Authenticated;
 pub use bytes::Binary;
+pub use observe::trace;
 pub use problem::{stamp, Failure, Problem};
 pub use router::{describe, router, Limits};
 pub use sessions::{Credentials, Current, Entry, Issued, WrappedKeys};

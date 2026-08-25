@@ -20,6 +20,8 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 
 [dev-dependencies]
+cc-crypto.workspace = true
+cc-domain.workspace = true
 base64.workspace = true
 cc-api.workspace = true
 figment = { workspace = true, features = ["test"] }

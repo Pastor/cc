@@ -4,6 +4,7 @@
 //! спецификации и описание без маршрута невозможны по построению, а не
 //! отлавливаются тестом задним числом.
 
+use crate::observe::trace;
 use crate::problem::stamp;
 use crate::spec::Spec;
 use crate::state::State;
@@ -17,7 +18,6 @@ use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
 use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::timeout::TimeoutLayer;
-use tower_http::trace::TraceLayer;
 use utoipa::OpenApi as _;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
@@ -77,7 +77,7 @@ pub fn router(state: State, limits: Limits) -> Router {
         .with_state(state)
         .layer(PropagateRequestIdLayer::new(REQUEST_ID))
         .layer(axum::middleware::from_fn(stamp))
-        .layer(TraceLayer::new_for_http())
+        .layer(axum::middleware::from_fn(trace))
         .layer(TimeoutLayer::with_status_code(
             http::StatusCode::SERVICE_UNAVAILABLE,
             limits.request,
