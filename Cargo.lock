@@ -238,6 +238,7 @@ dependencies = [
  "hex",
  "hkdf",
  "hmac",
+ "proptest",
  "rand_core 0.6.4",
  "sha2 0.10.9",
  "subtle",
