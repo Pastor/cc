@@ -1,6 +1,7 @@
 //! Сборка маршрутов и слоёв.
 
 use crate::state::State;
+use crate::version::negotiate;
 use axum::routing::get;
 use axum::Router;
 use http::header::{HeaderName, HeaderValue};
@@ -34,10 +35,15 @@ const REQUEST_ID: HeaderName = HeaderName::from_static("x-request-id");
 /// Служебные маршруты — пробы и версия сборки — не участвуют в версионировании
 /// контракта (`TODO.md`, раздел 10.1).
 pub fn router(state: State, limits: Limits) -> Router {
-    Router::new()
+    let versioned = Router::new()
+        .route("/api/files", get(files))
+        .layer(axum::middleware::from_fn(negotiate));
+    let service = Router::new()
         .route("/health/live", get(live))
         .route("/health/ready", get(ready))
-        .route("/api/version", get(version))
+        .route("/api/version", get(version));
+    service
+        .merge(versioned)
         .with_state(state)
         .layer(PropagateRequestIdLayer::new(REQUEST_ID))
         .layer(TraceLayer::new_for_http())
@@ -59,6 +65,14 @@ pub fn router(state: State, limits: Limits) -> Router {
             HeaderValue::from_static("nosniff"),
         ))
         .layer(SetRequestIdLayer::new(REQUEST_ID, MakeRequestUuid))
+}
+
+/// Коллекция файлов.
+///
+/// Заглушка: наполняется в TASK-013. Здесь она нужна, чтобы слой согласования
+/// версии имел, что защищать.
+async fn files() -> axum::Json<serde_json::Value> {
+    axum::Json(serde_json::json!({ "items": [], "next": serde_json::Value::Null }))
 }
 
 /// Проба живости: процесс отвечает.

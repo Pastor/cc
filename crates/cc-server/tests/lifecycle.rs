@@ -129,3 +129,110 @@ async fn storage_root_is_created() {
         "корень хранилища не создан при запуске"
     );
 }
+
+/// Выполняет запрос с заголовками и возвращает код ответа вместе с телом.
+async fn request_with(address: std::net::SocketAddr, path: &str, headers: &str) -> (u16, String) {
+    use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+    let mut stream = tokio::net::TcpStream::connect(address).await.unwrap();
+    let request =
+        format!("GET {path} HTTP/1.1\r\nHost: localhost\r\n{headers}Connection: close\r\n\r\n");
+    stream.write_all(request.as_bytes()).await.unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).await.unwrap();
+    let status = response
+        .split_whitespace()
+        .nth(1)
+        .and_then(|code| code.parse().ok())
+        .unwrap_or(0);
+    (status, response)
+}
+
+#[tokio::test]
+async fn request_without_version_is_served() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (status, _) = request(server.address(), "/api/files").await;
+    server.stop().await.unwrap();
+    assert_eq!(
+        status, 200,
+        "запрос без заголовка версии отвергнут вместо обслуживания самой старой версией"
+    );
+}
+
+#[tokio::test]
+async fn supported_version_is_served() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (status, _) = request_with(server.address(), "/api/files", "API-Version: 1\r\n").await;
+    server.stop().await.unwrap();
+    assert_eq!(status, 200, "поддерживаемая версия отвергнута");
+}
+
+#[tokio::test]
+async fn unknown_version_is_refused() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (status, _) = request_with(server.address(), "/api/files", "API-Version: 99\r\n").await;
+    server.stop().await.unwrap();
+    assert_eq!(status, 400, "неизвестная версия обслужена вместо отказа");
+}
+
+#[tokio::test]
+async fn refusal_lists_supported_versions() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (_, body) = request_with(server.address(), "/api/files", "API-Version: 99\r\n").await;
+    server.stop().await.unwrap();
+    assert!(
+        body.contains("supported"),
+        "отказ по версии не перечислил поддерживаемые версии"
+    );
+}
+
+#[tokio::test]
+async fn refusal_uses_problem_json() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (_, body) = request_with(server.address(), "/api/files", "API-Version: 99\r\n").await;
+    server.stop().await.unwrap();
+    assert!(
+        body.to_lowercase().contains("application/problem+json"),
+        "отказ отдан не в формате problem+json"
+    );
+}
+
+#[tokio::test]
+async fn versioned_response_varies_by_version() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (_, body) = request(server.address(), "/api/files").await;
+    server.stop().await.unwrap();
+    assert!(
+        body.to_lowercase().contains("vary: api-version"),
+        "версионируемый ответ не запретил кэширование без учёта версии"
+    );
+}
+
+#[tokio::test]
+async fn versioned_response_echoes_applied_version() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (_, body) = request(server.address(), "/api/files").await;
+    server.stop().await.unwrap();
+    assert!(
+        body.to_lowercase().contains("api-version: 1"),
+        "ответ не сообщил применённую версию контракта"
+    );
+}
+
+#[tokio::test]
+async fn service_route_ignores_version_header() {
+    let root = TempDir::new().unwrap();
+    let server = serve(&config(&root)).await.unwrap();
+    let (status, _) = request_with(server.address(), "/health/live", "API-Version: 99\r\n").await;
+    server.stop().await.unwrap();
+    assert_eq!(
+        status, 200,
+        "служебный маршрут отверг запрос из-за версии контракта"
+    );
+}
