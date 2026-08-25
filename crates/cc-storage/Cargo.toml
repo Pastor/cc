@@ -11,10 +11,11 @@ cc-crypto.workspace = true
 cc-domain.workspace = true
 thiserror.workspace = true
 time.workspace = true
-tokio = { workspace = true, features = ["sync"] }
+tokio = { workspace = true, features = ["sync", "fs", "io-util"] }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["rt", "macros"] }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
+tempfile.workspace = true
 
 [lints]
 workspace = true

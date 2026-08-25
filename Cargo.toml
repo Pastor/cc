@@ -41,6 +41,7 @@ hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 uuid = { version = "1.25.0", default-features = false, features = ["v4", "std"] }
 time = { version = "0.3.55", default-features = false, features = ["std"] }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
+tempfile = { version = "3.27.0", default-features = false }
 
 [profile.release]
 lto = "thin"
