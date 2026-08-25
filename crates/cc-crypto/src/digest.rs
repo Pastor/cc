@@ -1,7 +1,7 @@
 //! Хеширование и детерминированные метки.
 
 use crate::keys::TagKey;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::{Digest, Sha256};
 
 /// Длина хеша SHA-256.
@@ -56,7 +56,7 @@ impl TagLabel {
     )]
     #[must_use]
     pub fn of(key: &TagKey, normalized: &[u8]) -> Self {
-        let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(key.expose())
+        let mut mac = <Hmac<Sha256> as KeyInit>::new_from_slice(key.expose())
             .expect("INVARIANT: HMAC принимает ключ любой длины");
         mac.update(DOMAIN_TAG);
         mac.update(normalized);

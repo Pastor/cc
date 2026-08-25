@@ -27,10 +27,11 @@ proptest.workspace = true
 [lints]
 workspace = true
 
-# Источник случайности для веб-клиента: без feature "js" крейт getrandom
-# отказывается собираться под wasm32-unknown-unknown.
+# Источник случайности для веб-клиента: без feature "wasm_js" и флага
+# getrandom_backend крейт getrandom отказывается собираться под
+# wasm32-unknown-unknown.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { workspace = true, features = ["js"] }
+getrandom = { workspace = true, features = ["wasm_js"] }
 
 [[bench]]
 name = "primitives"

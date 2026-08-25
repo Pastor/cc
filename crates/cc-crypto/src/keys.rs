@@ -6,8 +6,7 @@
 
 use crate::error::{Error, Result};
 use crate::secret::Secret;
-use chacha20poly1305::aead::rand_core::RngCore as _;
-use chacha20poly1305::aead::OsRng;
+use chacha20poly1305::aead::Generate as _;
 use hkdf::Hkdf;
 use sha2::Sha256;
 
@@ -37,6 +36,10 @@ macro_rules! key {
             }
 
             /// Порождает ключ из источника случайности операционной системы.
+            ///
+            /// # Panics
+            ///
+            /// Паникует, если системный источник случайности отказал.
             #[must_use]
             pub fn generate() -> Self {
                 Self(Secret::new(random()))
@@ -149,10 +152,13 @@ impl AccountKey {
 }
 
 /// Порождает случайный ключевой материал.
+///
+/// # Panics
+///
+/// Паникует, если системный источник случайности отказал: ключ, выведенный из
+/// неполноценной случайности, опаснее отсутствия ключа.
 fn random() -> [u8; KEY_LEN] {
-    let mut bytes = [0_u8; KEY_LEN];
-    OsRng.fill_bytes(&mut bytes);
-    bytes
+    <[u8; KEY_LEN]>::generate()
 }
 
 /// Выводит ветвь фиксированной длины из корневого материала.

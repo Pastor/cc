@@ -8,7 +8,7 @@
 use crate::error::{Error, Result};
 use crate::keys::KEY_LEN;
 use crate::secret::Secret;
-use chacha20poly1305::aead::{Aead, AeadCore, KeyInit, OsRng, Payload};
+use chacha20poly1305::aead::{Aead, Generate as _, KeyInit, Payload};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
 use hkdf::Hkdf;
 use sha2::Sha256;
@@ -65,10 +65,14 @@ impl core::fmt::Debug for KeyPair {
 
 impl KeyPair {
     /// Порождает новую пару ключей.
+    ///
+    /// # Panics
+    ///
+    /// Паникует, если системный источник случайности отказал.
     #[must_use]
     pub fn generate() -> Self {
         Self {
-            secret: StaticSecret::random_from_rng(OsRng),
+            secret: StaticSecret::random(),
         }
     }
 
@@ -100,7 +104,7 @@ impl KeyPair {
 /// [`Error::Decryption`], если примитив отказал.
 pub fn seal(kek: &Secret<KEY_LEN>, key: &Secret<KEY_LEN>) -> Result<Vec<u8>> {
     let cipher = XChaCha20Poly1305::new(kek.expose().into());
-    let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
+    let nonce = XNonce::try_generate().map_err(|_| Error::Randomness)?;
     let sealed = cipher
         .encrypt(
             &nonce,
@@ -128,10 +132,15 @@ pub fn open(kek: &Secret<KEY_LEN>, wrapped: &[u8]) -> Result<Secret<KEY_LEN>> {
             expected: NONCE_LEN + TAG_LEN + KEY_LEN,
         });
     };
+    let Ok(nonce) = XNonce::try_from(nonce) else {
+        return Err(Error::BlockTooShort {
+            expected: NONCE_LEN + TAG_LEN + KEY_LEN,
+        });
+    };
     let cipher = XChaCha20Poly1305::new(kek.expose().into());
     let plain = cipher
         .decrypt(
-            XNonce::from_slice(nonce),
+            &nonce,
             Payload {
                 msg: sealed,
                 aad: DOMAIN_SYMMETRIC,
@@ -150,7 +159,7 @@ pub fn open(kek: &Secret<KEY_LEN>, wrapped: &[u8]) -> Result<Secret<KEY_LEN>> {
 ///
 /// [`Error::Decryption`], если примитив отказал.
 pub fn seal_for(recipient: &PublicKey, key: &Secret<KEY_LEN>) -> Result<Vec<u8>> {
-    let ephemeral = StaticSecret::random_from_rng(OsRng);
+    let ephemeral = StaticSecret::random();
     let ephemeral_public = X25519Public::from(&ephemeral).to_bytes();
     let kek = agree(
         &ephemeral,
@@ -159,7 +168,7 @@ pub fn seal_for(recipient: &PublicKey, key: &Secret<KEY_LEN>) -> Result<Vec<u8>>
         recipient.as_bytes(),
     );
     let cipher = XChaCha20Poly1305::new(kek.expose().into());
-    let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
+    let nonce = XNonce::try_generate().map_err(|_| Error::Randomness)?;
     let sealed = cipher
         .encrypt(
             &nonce,
@@ -199,10 +208,13 @@ pub fn open_for(pair: &KeyPair, wrapped: &[u8]) -> Result<Secret<KEY_LEN>> {
         &ephemeral_bytes,
         recipient.as_bytes(),
     );
+    let Ok(nonce) = XNonce::try_from(nonce) else {
+        return Err(Error::BlockTooShort { expected });
+    };
     let cipher = XChaCha20Poly1305::new(kek.expose().into());
     let plain = cipher
         .decrypt(
-            XNonce::from_slice(nonce),
+            &nonce,
             Payload {
                 msg: sealed,
                 aad: DOMAIN_ASYMMETRIC,

@@ -17,4 +17,4 @@ workspace = true
 
 # Источник случайности для веб-клиента — то же требование, что и в cc-crypto.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { workspace = true, features = ["js"] }
+getrandom = { workspace = true, features = ["wasm_js"] }

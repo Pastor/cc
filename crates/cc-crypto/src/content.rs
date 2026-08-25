@@ -7,7 +7,7 @@
 
 use crate::error::{Error, Result};
 use crate::keys::ContentKey;
-use chacha20poly1305::aead::{Aead, AeadCore, KeyInit, OsRng, Payload};
+use chacha20poly1305::aead::{Aead, Generate as _, KeyInit, Payload};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
 
 /// Версия формата шифрования содержимого.
@@ -185,7 +185,7 @@ impl Cipher {
             });
         }
         let cipher = XChaCha20Poly1305::new(self.key.expose().into());
-        let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
+        let nonce = XNonce::try_generate().map_err(|_| Error::Randomness)?;
         let aad = self.aad(index);
         let sealed = cipher
             .encrypt(
@@ -220,11 +220,16 @@ impl Cipher {
                 expected: NONCE_LEN + TAG_LEN,
             });
         }
+        let Ok(nonce) = XNonce::try_from(nonce) else {
+            return Err(Error::BlockTooShort {
+                expected: NONCE_LEN + TAG_LEN,
+            });
+        };
         let cipher = XChaCha20Poly1305::new(self.key.expose().into());
         let aad = self.aad(index);
         cipher
             .decrypt(
-                XNonce::from_slice(nonce),
+                &nonce,
                 Payload {
                     msg: sealed,
                     aad: &aad,
