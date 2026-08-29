@@ -20,7 +20,7 @@ jobs:
     name: Проверки
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Toolchain из rust-toolchain.toml
         run: rustup show
@@ -69,7 +69,7 @@ jobs:
     name: Сборка под WebAssembly
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Toolchain и цель wasm32
         run: |
@@ -91,7 +91,7 @@ jobs:
           - x86_64-unknown-linux-gnu
           - aarch64-unknown-linux-gnu
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Toolchain и цель
         run: |

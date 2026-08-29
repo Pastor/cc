@@ -19,7 +19,7 @@ jobs:
     name: Известные уязвимости
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
       - run: cargo install cargo-audit --locked
@@ -29,7 +29,7 @@ jobs:
     name: Лицензии, источники и дубликаты
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
       - run: cargo install cargo-deny --locked
@@ -39,7 +39,7 @@ jobs:
     name: Неиспользуемые зависимости
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
       - run: cargo install cargo-machete --locked
