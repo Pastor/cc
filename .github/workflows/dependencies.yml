@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: rustup show
       - run: cargo update
-      - uses: peter-evans/create-pull-request@v6
+      - uses: peter-evans/create-pull-request@v8
         with:
           branch: cargo-update
           title: Обновление зависимостей
