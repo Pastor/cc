@@ -58,7 +58,7 @@ http = { version = "1", default-features = false }
 base64 = { version = "0.23.1", default-features = false, features = ["alloc"] }
 oauth2 = { version = "5.0.0", default-features = false, features = ["reqwest", "rustls-tls"] }
 utoipa = { version = "5.5.0", default-features = false, features = ["axum_extras", "macros"] }
-utoipa-axum = { version = "0.2.0", default-features = false }
+utoipa-axum = { version = "0.3.0", default-features = false }
 utoipa-swagger-ui = { version = "9.0.2", default-features = false, features = ["axum", "vendored"] }
 
 [profile.release]
